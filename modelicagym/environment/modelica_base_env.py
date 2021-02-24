@@ -68,7 +68,6 @@ class ModelicaBaseEnv(gym.Env):
 
         :param log_level: level of logging to be used
         """
-
         logger.setLevel(log_level)
         if mode != 'CS' and mode != 'ME':
             logger.warning("Mode should be either CS or ME. Actual value {}. Trying to load in CS mode".format(mode))
@@ -219,7 +218,6 @@ class ModelicaBaseEnv(gym.Env):
         opts['initialize'] = False
 
         result = self.model.simulate(start_time=self.start, final_time=self.stop, options=opts)
-
         return self.get_state(result)
 
     def _reward_policy(self):
