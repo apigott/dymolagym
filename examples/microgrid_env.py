@@ -45,7 +45,9 @@ class MicrogridEnv(DymolaEnv):
         self.cart_transform = None
 
         config = {
-            'model_name': 'IEEE14.IEEE_14_Buses'
+            'model_libs': ['../../../OpenIPSL-1.5.0/OpenIPSL-1.5.0/OpenIPSL/package.mo',
+            '../../../OpenIPSL-1.5.0/OpenIPSL-1.5.0/ApplicationExamples/IEEE14/package.mo'],
+            'model_name': 'IEEE14.IEEE_14_Buses',
             'model_input_names': ['v_ref'],
             # 'model_output_names': ['infinite_bus.P'],
             'model_output_names': ['B1.V','B2.V','B3.V'],
