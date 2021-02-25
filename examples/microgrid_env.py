@@ -12,7 +12,7 @@ from modelicagym.environment import FMI2CSEnv, FMI1CSEnv, FMI2MEEnv
 
 logger = logging.getLogger(__name__)
 
-class MicrogridEnv(FMI2MEEnv):
+class MicrogridEnv(DymolaEnv):
     """
     Wrapper class for creation of cart-pole environment using JModelica-compiled FMU (FMI standard v.2.0).
 
