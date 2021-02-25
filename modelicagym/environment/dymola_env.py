@@ -1,4 +1,4 @@
-from modelicagym.environment import DymolaBaseEnv, FMIStandardVersion
+from modelicagym.environment import DymolaBaseEnv#, FMIStandardVersion
 import logging
 
 logger = logging.getLogger(__name__)
