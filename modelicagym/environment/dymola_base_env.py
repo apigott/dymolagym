@@ -53,7 +53,7 @@ class DymolaBaseEnv(gym.Env):
     All methods called on model are from implemented PyFMI API.
     """
 
-    def __init__(self, model_path, config, log_level):
+    def __init__(self, model_libs, model_name, config, log_level):
         """
 
         :param model_path: path to the model FMU. Absolute path is advised.

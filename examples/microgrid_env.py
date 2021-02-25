@@ -44,10 +44,11 @@ class MicrogridEnv(DymolaEnv):
         self.pole_transform = None
         self.cart_transform = None
 
+        model_libs = ['../../../OpenIPSL-1.5.0/OpenIPSL-1.5.0/OpenIPSL/package.mo',
+        '../../../OpenIPSL-1.5.0/OpenIPSL-1.5.0/ApplicationExamples/IEEE14/package.mo']
+        model_name = 'IEEE14.IEEE_14_Buses'
+
         config = {
-            'model_libs': ['../../../OpenIPSL-1.5.0/OpenIPSL-1.5.0/OpenIPSL/package.mo',
-            '../../../OpenIPSL-1.5.0/OpenIPSL-1.5.0/ApplicationExamples/IEEE14/package.mo'],
-            'model_name': 'IEEE14.IEEE_14_Buses',
             'model_input_names': ['v_ref'],
             # 'model_output_names': ['infinite_bus.P'],
             'model_output_names': ['B1.V','B2.V','B3.V'],
@@ -63,7 +64,7 @@ class MicrogridEnv(DymolaEnv):
         self.max_reward = 1
         self.min_reward = 0
         self.avg_reward = 1
-        super().__init__(path, config, log_level)
+        super().__init__(model_libs, model_name, config, log_level)
 
     # def _normalize_reward(self):
     #     self.max_reward = -np.inf
