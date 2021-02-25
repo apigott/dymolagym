@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class DymolaEnv(ModelicaBaseEnv):
+class DymolaEnv(DymolaBaseEnv):
     """
     Wrapper class of ModelicaBaseEnv for convenient creation of environments that utilize
     FMU exported in model exchange mode.
