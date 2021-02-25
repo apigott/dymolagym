@@ -45,6 +45,7 @@ class MicrogridEnv(DymolaEnv):
         self.cart_transform = None
 
         config = {
+            'model_name': 'IEEE14.IEEE_14_Buses'
             'model_input_names': ['v_ref'],
             # 'model_output_names': ['infinite_bus.P'],
             'model_output_names': ['B1.V','B2.V','B3.V'],

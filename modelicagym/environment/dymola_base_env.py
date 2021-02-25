@@ -226,7 +226,7 @@ class DymolaBaseEnv(gym.Env):
         #
         # result = self.model.simulate(start_time=self.start, final_time=self.stop, options=opts)
 
-        results = self.dymola.simulateExtendedModel(startTime=self.start, finalTime=self.stop, inputNames=self.model_input_names, inputValues=action, finalNames=self.model_output_names)
+        results = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start, finalTime=self.stop, inputNames=self.model_input_names, inputValues=action, finalNames=self.model_output_names)
         return self.get_state(result)
 
     def _reward_policy(self):

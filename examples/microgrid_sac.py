@@ -6,7 +6,7 @@ import gym
 import numpy as np
 
 # path = "../../OpenIPSL-1.5.0/IEEE14_IEEE_14_Buses.fmu"
-path = "../../OpenIPSL-1.5.0/KundurSMIB_SMIB.fmu"
+# path = "../../OpenIPSL-1.5.0/KundurSMIB_SMIB.fmu"
 env_entry_point = 'examples:MicrogridEnv'
 
 v_ref = 1
@@ -16,7 +16,9 @@ negative_reward = -100
 log_level = logging.DEBUG
 
 config = {
-    'path': path,
+    'model_libs': ['../../../OpenIPSL-1.5.0/OpenIPSL-1.5.0/OpenIPSL/package.mo',
+    '../../../OpenIPSL-1.5.0/OpenIPSL-1.5.0/ApplicationExamples/IEEE14/package.mo'],
+    'model_name': 'IEEE14.IEEE_14_Buses',
     'v_ref': v_ref,
     'time_step': time_step,
     'positive_reward': positive_reward,
