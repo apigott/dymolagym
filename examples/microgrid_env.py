@@ -8,7 +8,8 @@ import logging
 import math
 import numpy as np
 from gym import spaces
-from modelicagym.environment import FMI2CSEnv, FMI1CSEnv, FMI2MEEnv
+# from modelicagym.environment import FMI2CSEnv, FMI1CSEnv, FMI2MEEnv
+from modelicagym.environment import DymolaEnv
 
 logger = logging.getLogger(__name__)
 
