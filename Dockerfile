@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y \
   liblapack-dev \
   libsundials-dev \
   libgfortran3 \
-  nano
+  nano \
+  python-opengl
 
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh &&\
   yes "yes" | bash Miniconda3-latest-Linux-x86_64.sh &&\

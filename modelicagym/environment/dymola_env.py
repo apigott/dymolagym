@@ -13,7 +13,7 @@ class DymolaEnv(DymolaBaseEnv):
 
     """
 
-    def __init__(self, model_path, config, log_level,
+    def __init__(self, model_libs, model_name, config, log_level,
                  simulation_start_time=0):
         """
 

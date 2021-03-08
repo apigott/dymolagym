@@ -1,4 +1,3 @@
-
 def test_pyfmi(mode="CS"):
     from pyfmi import load_fmu
 
@@ -18,7 +17,7 @@ def test_pyfmi(mode="CS"):
     print("PyFMI is available and successfully simulating.")
 
 
-def test_gym(visualize=True):
+def test_gym(visualize=False):
     import gym
     env = gym.make('CartPole-v0')
     env.reset()
