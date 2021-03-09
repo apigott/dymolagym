@@ -44,7 +44,7 @@ class MicrogridEnv(FMI2MEEnv):
         self.cart_transform = None
 
         config = {
-            'model_input_names': ['v_ref'],
+            'model_input_names': ['v_ref1'],
             # 'model_output_names': ['infinite_bus.P'],
             'model_output_names': ['B1.V','B2.V','B3.V'],
             'model_parameters': {},

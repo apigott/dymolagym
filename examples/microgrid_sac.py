@@ -6,8 +6,8 @@ import gym
 import numpy as np
 
 # path = "../../OpenIPSL-1.5.0/IEEE14_IEEE_14_Buses.fmu"
-path = "../../OpenIPSL-1.5.0/KundurSMIB_SMIB.fmu"
-env_entry_point = 'examples:MicrogridEnv'
+path = "../../OpenIPSL-1.5.0/IEEE14_IEEE_14_Buses.fmu"
+env_entry_point = 'examples:Microgrid14Env'
 
 v_ref = 1
 time_step = .5
