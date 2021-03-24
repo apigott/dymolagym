@@ -5,7 +5,6 @@ import logging
 import gym
 import numpy as np
 
-# path = "../../OpenIPSL-1.5.0/IEEE14_IEEE_14_Buses.fmu"
 path = "../../OpenIPSL-1.5.0/IEEE14_IEEE_14_Buses.fmu"
 env_entry_point = 'examples:Microgrid14Env'
 
