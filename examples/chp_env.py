@@ -31,7 +31,7 @@ class CHPEnv(FMI2MEEnv):
         negative_reward (int): negative reward for RL agent.
     """
 
-    def __init__(self, p_ele_dem, t_wat_out_set, time_step, positive_reward,
+    def __init__(self, vref_2, vref_3, vref_6, vref_8, time_step, positive_reward,
                  negative_reward, log_level, path):
 
         logger.setLevel(log_level)
@@ -45,11 +45,10 @@ class CHPEnv(FMI2MEEnv):
         self.cart_transform = None
 
         config = {
-            'model_input_names': ['P_Ele_Dem', 'TWatOutSet'],
-            # 'model_output_names': ['infinite_bus.P'],
-            'model_output_names': ['mWatSet_flow','PCon','PEleNet','mFueFlow','QWat_flow'],
+            'model_input_names': ['vref_2'], # leave out other 3 buses for now.
+            'model_output_names': ['B1.V','B2.V','B3.V','B4.V','B5.V','B6.V','B7.V','B8.V','B9.V','B10.V','B11.V','B12.V','B13.V','B14.V'],
             'model_parameters': {},
-            'initial_state': (1),
+            'initial_state': (1,1,1,1,1,1,1,1,1,1,1,1,1,1),
             'time_step': time_step,
             'positive_reward': positive_reward,
             'negative_reward': negative_reward
@@ -96,7 +95,7 @@ class CHPEnv(FMI2MEEnv):
         return spaces.Box(low, high)
 
     def _reward_policy(self):
-        return self.state[2]
+        return np.sum(self.state)
 
     def step(self, action):
         self.n_steps += 1

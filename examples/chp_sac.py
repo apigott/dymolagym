@@ -5,7 +5,7 @@ import logging
 import gym
 import numpy as np
 
-path = "../../Buildings_Fluid_CHPs_AisTheEleFollowing.fmu"
+path = "../../Dymola/IEEE14_014_0Buses_0CHP.fmu"
 env_entry_point = 'examples:CHPEnv'
 
 p_ele_dem = 5500
@@ -17,8 +17,10 @@ log_level = logging.DEBUG
 
 config = {
     'path': path,
-    'p_ele_dem': p_ele_dem,
-    't_wat_out_set': t_wat_out_set,
+    'vref_2': vref_2,
+    'vref_3': vref_3,
+    'vref_6': vref_6,
+    'vref_8': vref_8,
     'time_step': time_step,
     'positive_reward': positive_reward,
     'negative_reward': negative_reward,
