@@ -8,8 +8,10 @@ import numpy as np
 path = "../../Dymola/IEEE14_014_0Buses_0CHP.fmu"
 env_entry_point = 'examples:CHPEnv'
 
-p_ele_dem = 5500
-t_wat_out_set = 343
+vref_2 = 1.0
+vref_3 = 1.0
+vref_6 = 1.0
+vref_8 = 1.0
 time_step = .5
 positive_reward = 1
 negative_reward = -100
