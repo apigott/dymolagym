@@ -36,8 +36,10 @@ class CHPEnv(FMI2MEEnv):
 
         logger.setLevel(log_level)
 
-        self.p_ele_dem = p_ele_dem
-        self.t_wat_out_set = t_wat_out_set
+        self.vref_2 = vref_2
+        self.vref_3 = vref_3
+        self.vref_6 = vref_6
+        self.vref_8 = vref_8
 
         self.viewer = None
         self.display = None
