@@ -44,7 +44,7 @@ class DymSMIBEnv(DymolaBaseEnv):
         self.cart_transform = None
 
         config = {
-            'model_input_names': [],
+            'model_input_names': ['v_ref'],
             # 'model_output_names': ['infinite_bus.P'],
             'model_output_names': ["G1.machine.P"],
             'model_parameters': {},
@@ -86,8 +86,8 @@ class DymSMIBEnv(DymolaBaseEnv):
         return spaces.Box(low, high)
 
     def _get_observation_space(self):
-        low = 0*np.ones(3)
-        high = 5*np.ones(3)
+        low = 0*np.ones(1)
+        high = 5*np.ones(1)
         return spaces.Box(low, high)
 
     def _reward_policy(self):

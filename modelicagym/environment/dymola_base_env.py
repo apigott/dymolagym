@@ -94,9 +94,9 @@ class DymolaBaseEnv(gym.Env):
             for file in os.listdir(self.temp_dir):
                 os.remove(os.path.join(self.temp_dir, file))
 
-        self.action = []
-        self.do_simulation()
-        return
+        self.action = [1.0]
+        self.state = self.do_simulation()
+        return self.state
 
     def step(self, action):
         """
@@ -195,8 +195,8 @@ class DymolaBaseEnv(gym.Env):
         self.dymola.importInitial('dsfinal.txt')
         res = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start,
                                                 stopTime=self.stop,
-                                                #initialNames=self.model_input_names,
-                                                #initialValues=self.action,
+                                                initialNames=self.model_input_names,
+                                                initialValues=self.action,
                                                 finalNames=self.model_output_names)
 
         print(res)
