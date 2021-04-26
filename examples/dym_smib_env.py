@@ -46,7 +46,7 @@ class DymSMIBEnv(DymolaBaseEnv):
         config = {
             'model_input_names': ['v_ref'],
             # 'model_output_names': ['infinite_bus.P'],
-            'model_output_names': ["G1.machine.P"],
+            'model_output_names': ["G1.machine.P", "v_ref"],
             'model_parameters': {},
             'initial_state': (1),
             'time_step': time_step,
@@ -92,7 +92,7 @@ class DymSMIBEnv(DymolaBaseEnv):
 
     def _reward_policy(self):
         # print("self.state", self.state)
-        reward = -1*(1 + np.sum(np.abs(np.subtract(self.state, np.ones(3))))/self.avg_reward)
+        reward = -1*(1 + np.sum(np.abs(np.subtract(self.state[0], np.ones(3))))/self.avg_reward)
         return reward
 
     def step(self, action):

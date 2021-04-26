@@ -48,7 +48,7 @@ class DymolaBaseEnv(gym.Env):
         if not os.path.isdir('temp_dir'):
             os.mkdir('temp_dir')
         self.temp_dir = os.path.join(os.getcwd(), "temp_dir")
-        self.dymola.cd(self.temp_dir)
+        self.dymola.cd('temp_dir')
 
         # if you reward policy is different from just reward/penalty - implement custom step method
         self.positive_reward = config.get('positive_reward')
@@ -90,12 +90,16 @@ class DymolaBaseEnv(gym.Env):
         OpenAI Gym API. Determines restart procedure of the environment
         :return: environment state after restart
         """
-        if os.path.isdir(self.temp_dir):
-            for file in os.listdir(self.temp_dir):
-                os.remove(os.path.join(self.temp_dir, file))
+        if os.path.isdir('temp_dir'):
+            print("Removing old files...")
+            for file in os.listdir('temp_dir'):
+                os.remove(os.path.join(os.getcwd(), 'temp_dir',file))
 
-        self.action = [1.0]
-        self.state = self.do_simulation()
+        self.action = [2.4]
+        self.start = 0
+        self.stop = self.tau
+        self.dymola.simulateModel(self.model_name, startTime=0, stopTime=0)
+        self.state = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start, stopTime=self.stop, finalNames=self.model_output_names)
         return self.state
 
     def step(self, action):
@@ -143,7 +147,7 @@ class DymolaBaseEnv(gym.Env):
         # Move simulation time interval if experiment continues
         if not self.done:
             logger.debug("Experiment step done, experiment continues.")
-            self.start = self.stop
+            self.start += self.tau
             self.stop += self.tau
         else:
             logger.debug("Experiment step done, experiment done.")
@@ -191,14 +195,12 @@ class DymolaBaseEnv(gym.Env):
         """
         logger.debug("Simulation started for time interval {}-{}".format(self.start, self.stop))
 
-        # self.dymola.cd(self.temp_dir)
-        self.dymola.importInitial('dsfinal.txt')
         res = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start,
                                                 stopTime=self.stop,
-                                                initialNames=self.model_input_names,
-                                                initialValues=self.action,
+                                                # initialNames=self.model_input_names,
+                                                # initialValues=self.action,
                                                 finalNames=self.model_output_names)
-
+        self.dymola.importInitial('dsfinal.txt')
         print(res)
         return self.get_state(res) # a list of the final values
 
