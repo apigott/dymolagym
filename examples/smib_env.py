@@ -8,11 +8,11 @@ import logging
 import math
 import numpy as np
 from gym import spaces
-from modelicagym.environment import FMI2CSEnv, FMI1CSEnv, FMI2MEEnv
+from modelicagym.environment import DymolaBaseEnv
 
 logger = logging.getLogger(__name__)
 
-class SMIBEnv(FMI2MEEnv):
+class DymSMIBEnv(DymolaBaseEnv):
     """
     Wrapper class for creation of cart-pole environment using JModelica-compiled FMU (FMI standard v.2.0).
 
@@ -31,8 +31,8 @@ class SMIBEnv(FMI2MEEnv):
         negative_reward (int): negative reward for RL agent.
     """
 
-    def __init__(self, v_ref, time_step, positive_reward,
-                 negative_reward, log_level, path):
+    def __init__(self, mo_name, libs, v_ref, time_step, positive_reward,
+                 negative_reward, log_level):
 
         logger.setLevel(log_level)
 
@@ -43,10 +43,11 @@ class SMIBEnv(FMI2MEEnv):
         self.pole_transform = None
         self.cart_transform = None
 
+        print("initializing here..")
         config = {
-            'model_input_names': ['v_ref'],
+            'model_input_names': ['G1.vref.k'],
             # 'model_output_names': ['infinite_bus.P'],
-            'model_output_names': ['B1.V','B2.V','B3.V'],
+            'model_output_names': ["G1.machine.P", "G1.vref.k"],
             'model_parameters': {},
             'initial_state': (1),
             'time_step': time_step,
@@ -59,7 +60,7 @@ class SMIBEnv(FMI2MEEnv):
         self.max_reward = 1
         self.min_reward = 0
         self.avg_reward = 1
-        super().__init__(path, config, log_level)
+        super().__init__(mo_name, libs, config, log_level)
 
     # def _normalize_reward(self):
     #     self.max_reward = -np.inf
@@ -77,11 +78,7 @@ class SMIBEnv(FMI2MEEnv):
     #             self.min_reward = reward
 
     def _is_done(self):
-        if self.n_steps > 10:
-            done = True
-            self.n_steps = 0
-        else:
-            done = False
+        done = False
         return done
 
     def _get_action_space(self):
@@ -90,13 +87,13 @@ class SMIBEnv(FMI2MEEnv):
         return spaces.Box(low, high)
 
     def _get_observation_space(self):
-        low = 0*np.ones(3)
-        high = 5*np.ones(3)
+        low = 0*np.ones(1)
+        high = 5*np.ones(1)
         return spaces.Box(low, high)
 
     def _reward_policy(self):
         # print("self.state", self.state)
-        reward = -1*(1 + np.sum(np.abs(np.subtract(self.state, np.ones(3))))/self.avg_reward)
+        reward = -1*(1 + np.sum(np.abs(np.subtract(self.state[0], np.ones(3))))/self.avg_reward)
         return reward
 
     def step(self, action):

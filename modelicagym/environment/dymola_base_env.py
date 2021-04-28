@@ -98,8 +98,9 @@ class DymolaBaseEnv(gym.Env):
         self.action = [2.4]
         self.start = 0
         self.stop = self.tau
-        self.dymola.simulateModel(self.model_name, startTime=0, stopTime=0)
-        self.state = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start, stopTime=self.stop, finalNames=self.model_output_names)
+        res = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start, stopTime=self.start, initialNames=self.model_input_names,
+                                     initialValues=self.action, finalNames=self.model_output_names)
+        self.state = res[1]
         return self.state
 
     def step(self, action):
@@ -195,12 +196,14 @@ class DymolaBaseEnv(gym.Env):
         """
         logger.debug("Simulation started for time interval {}-{}".format(self.start, self.stop))
 
+        self.dymola.importInitialResult('dsres.mat', atTime=self.start)
+
         res = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start,
                                                 stopTime=self.stop,
-                                                # initialNames=self.model_input_names,
-                                                # initialValues=self.action,
+                                                initialNames=self.model_input_names,
+                                                initialValues=self.action,
                                                 finalNames=self.model_output_names)
-        self.dymola.importInitial('dsfinal.txt')
+
         print(res)
         return self.get_state(res) # a list of the final values
 
