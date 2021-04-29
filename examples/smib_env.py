@@ -31,12 +31,10 @@ class DymSMIBEnv(DymolaBaseEnv):
         negative_reward (int): negative reward for RL agent.
     """
 
-    def __init__(self, mo_name, libs, v_ref, time_step, positive_reward,
+    def __init__(self, mo_name, libs, default_action, time_step, positive_reward,
                  negative_reward, log_level):
 
         logger.setLevel(log_level)
-
-        self.v_ref = v_ref
 
         self.viewer = None
         self.display = None
@@ -52,7 +50,8 @@ class DymSMIBEnv(DymolaBaseEnv):
             'initial_state': (1),
             'time_step': time_step,
             'positive_reward': positive_reward,
-            'negative_reward': negative_reward
+            'negative_reward': negative_reward,
+            'default_action': default_action
         }
 
         self.n_steps = 0
