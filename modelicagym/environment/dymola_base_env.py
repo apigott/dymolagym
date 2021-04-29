@@ -59,6 +59,7 @@ class DymolaBaseEnv(gym.Env):
         self.model_input_names = config.get('model_input_names')
         self.model_output_names = config.get('model_output_names')
         self.model_parameters = config.get('model_parameters')
+        self.default_action = config['default_action']
 
         # initialize the model time and state
         self.start = 0
@@ -90,16 +91,20 @@ class DymolaBaseEnv(gym.Env):
         OpenAI Gym API. Determines restart procedure of the environment
         :return: environment state after restart
         """
+        logger.info("Resetting the environment by deleting old results files.")
         if os.path.isdir('temp_dir'):
-            print("Removing old files...")
+            # print("Removing old files...")
             for file in os.listdir('temp_dir'):
                 os.remove(os.path.join(os.getcwd(), 'temp_dir',file))
 
-        self.action = [2.4]
+        self.action = self.default_action
         self.start = 0
         self.stop = self.tau
-        res = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start, stopTime=self.start, initialNames=self.model_input_names,
-                                     initialValues=self.action, finalNames=self.model_output_names)
+        res = self.dymola.simulateExtendedModel(self.model_name,
+                                                startTime=self.start, stopTime=self.start,
+                                                initialNames=self.model_input_names,
+                                                initialValues=self.action,
+                                                finalNames=self.model_output_names)
         self.state = res[1]
         return self.state
 
@@ -140,10 +145,10 @@ class DymolaBaseEnv(gym.Env):
         self.action = action
 
         # Simulate and observe result state
-        self.state = self.do_simulation()
+        self.done, self.state = self.do_simulation()
 
         # Check if experiment has finished
-        self.done = self._is_done()
+        # self.done = self._is_done()
 
         # Move simulation time interval if experiment continues
         if not self.done:
@@ -151,7 +156,7 @@ class DymolaBaseEnv(gym.Env):
             self.start += self.tau
             self.stop += self.tau
         else:
-            logger.debug("Experiment step done, experiment done.")
+            logger.WARN("Experiment step done, SIMULATION FAILED.")
 
         return self.state, self._reward_policy(), self.done, {}
 
@@ -178,13 +183,13 @@ class DymolaBaseEnv(gym.Env):
         """
         pass
 
-    def _is_done(self):
+    def _is_done(self, results):
         """
         Determines logic when experiment is considered to be done.
 
         :return: boolean flag if current state of the environment indicates that experiment has ended.
         """
-        pass
+        return not results[0]
 
     # part of the step() method extracted for convenience
     def do_simulation(self):
@@ -204,8 +209,8 @@ class DymolaBaseEnv(gym.Env):
                                                 initialValues=self.action,
                                                 finalNames=self.model_output_names)
 
-        print(res)
-        return self.get_state(res) # a list of the final values
+        logger.debug("Simulation results: {}".format(res))
+        return self._is_done(res), self.get_state(res) # a list of the final values
 
     def _reward_policy(self):
         """
