@@ -41,8 +41,10 @@ class IEEE9Env(DymolaBaseEnv):
         self.pole_transform = None
         self.cart_transform = None
 
-        self.action_names = ['G1.pref.k']
+        self.action_names = ['G1.pref.k','G2.pref.k','G3.pref.k']
         self.state_names = ['B1.V','B2.V','B3.V','B4.V','B5.V','B6.V','B7.V','B8.V','B9.V']
+        # for a time averaged version:
+        # self.state_names = ['b1_average.y', 'b2_average.y', ...]
         config = {
             'model_input_names': self.action_names,
             'model_output_names': self.state_names,
@@ -59,6 +61,7 @@ class IEEE9Env(DymolaBaseEnv):
         self.max_reward = 0.5
         self.min_reward = -0.5
         self.avg_reward = 0
+        # change this to unpack the dictionary __init__(**config), so that some parameters can have default values
         super().__init__(mo_name, libs, config, log_level)
 
     # def _is_done(self):
@@ -82,7 +85,7 @@ class IEEE9Env(DymolaBaseEnv):
 
     def step(self, action):
         self.n_steps += 1
-        return super().step(action)
+        return super().step(list(action))
 
     def render(self, mode='human', close=False):
         return

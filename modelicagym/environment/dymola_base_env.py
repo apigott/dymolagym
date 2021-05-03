@@ -33,17 +33,19 @@ class DymolaBaseEnv(gym.Env):
         """
         logger.setLevel(log_level)
 
-        self.model_name = mo_name #model_path.split(os.path.sep)[-1]
+        self.model_name = mo_name
         self.dymola = DymolaInterface()
+        self.dymola.ExecuteCommand("Advanced.Define.DAEsolver = true")
 
         # load libraries
         loaded = []
         for lib in libs: # all paths relative to the cwd
-            loaded += [self.dymola.openModel(lib)]
-            self.dymola.cd(os.getcwd()) # return dymola cwd to system cwd
+            loaded += [self.dymola.openModel(lib, changeDirectory=False)]
 
         if not False in loaded:
-            logger.debug("Successfully libraries")
+            logger.debug("Successfully loaded all libraries.")
+        else:
+            logger.error("Dymola could not find all models.")
 
         if not os.path.isdir('temp_dir'):
             os.mkdir('temp_dir')
@@ -100,6 +102,9 @@ class DymolaBaseEnv(gym.Env):
         self.action = self.default_action
         self.start = 0
         self.stop = self.tau
+        print("Resetting...")
+        print("Initial names: ", self.model_input_names)
+        print("Initial values: ", self.action)
         res = self.dymola.simulateExtendedModel(self.model_name,
                                                 startTime=self.start, stopTime=self.start,
                                                 initialNames=self.model_input_names,
@@ -156,7 +161,7 @@ class DymolaBaseEnv(gym.Env):
             self.start += self.tau
             self.stop += self.tau
         else:
-            logger.WARN("Experiment step done, SIMULATION FAILED.")
+            logger.warn("Experiment step done, SIMULATION FAILED.")
 
         return self.state, self._reward_policy(), self.done, {}
 
@@ -203,6 +208,9 @@ class DymolaBaseEnv(gym.Env):
 
         self.dymola.importInitialResult('dsres.mat', atTime=self.start)
 
+        print("Do simulation...")
+        print("Initial names: ", self.model_input_names)
+        print("Initial values: ", self.action)
         res = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start,
                                                 stopTime=self.stop,
                                                 initialNames=self.model_input_names,
