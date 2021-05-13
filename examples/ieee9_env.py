@@ -42,7 +42,9 @@ class IEEE9Env(DymolaBaseEnv):
         self.cart_transform = None
 
         self.action_names = ['G1.pref.k','G2.pref.k','G3.pref.k']
-        self.state_names = ['B1.V','B2.V','B3.V','B4.V','B5.V','B6.V','B7.V','B8.V','B9.V']
+        self.state_names = ['integrator',
+                            'G1.pref.k','G2.pref.k','G3.pref.k',
+                            'load_B8.P', 'load_B6.P', 'load_B5.P']
         # for a time averaged version:
         # self.state_names = ['b1_average.y', 'b2_average.y', ...]
         config = {
@@ -61,30 +63,44 @@ class IEEE9Env(DymolaBaseEnv):
         self.max_reward = 0.5
         self.min_reward = -0.5
         self.avg_reward = 0
+        self.cached_values = None
         # change this to unpack the dictionary __init__(**config), so that some parameters can have default values
         super().__init__(mo_name, libs, config, log_level)
 
-    # def _is_done(self):
-    #     done = False
-    #     return done
+    def postprocess_state(self, state):
+        processed_states = []
+        for s in state:
+            if isinstance(s, list): # this is lazy and will only work when the whole list is of integrated values
+                if self.cached_values:
+                    processed_states += list(np.divide(np.subtract(s, self.cached_values),self.tau))
+                    self.cached_values = s # this implementation only works when there is "one" variable that is integrated
+                else:
+                    processed_states += list(np.divide(s,self.tau))
+                    self.cached_values = s
+            else:
+                processed_states += [s]
+        return processed_states
 
     def _get_action_space(self):
-        low = -0.1*np.ones(len(self.action_names))
-        high = 0.1*np.ones(len(self.action_names))
+        low = -1*np.ones(len(self.action_names))
+        high = np.ones(len(self.action_names))
         return spaces.Box(low, high)
 
     def _get_observation_space(self):
-        low = 0.92*np.ones(len(self.state_names))
-        high = 1.06*np.ones(len(self.state_names))
+        low = -1*np.ones(8 + len(self.state_names))
+        high = 1*np.ones(8 + len(self.state_names))
         return spaces.Box(low, high)
 
     def _reward_policy(self):
-        reward = -10*np.linalg.norm(np.subtract(self.state,1))
-        normalized_reward = (reward - self.avg_reward) / (self.max_reward - self.min_reward)
-        return normalized_reward
+        reward = -10*np.linalg.norm(np.subtract(self.state[:9],1))
+        if self.done:
+            reward -= 10
+        # normalized_reward = (reward - self.avg_reward) / (self.max_reward - self.min_reward)
+        return reward
 
     def step(self, action):
         self.n_steps += 1
+        action = np.multiply(action, 0.1)
         return super().step(list(action))
 
     def render(self, mode='human', close=False):
