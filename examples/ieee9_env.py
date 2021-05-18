@@ -92,7 +92,7 @@ class IEEE9Env(DymolaBaseEnv):
         return spaces.Box(low, high)
 
     def _reward_policy(self):
-        reward = -10*np.linalg.norm(np.subtract(self.state[:9],1))
+        reward = -10*np.linalg.norm(np.subtract(self.state[0],np.ones(9)))
         if self.done:
             reward -= 10
         # normalized_reward = (reward - self.avg_reward) / (self.max_reward - self.min_reward)

@@ -8,6 +8,16 @@ from enum import Enum
 
 logger = logging.getLogger(__name__)
 
+def flatten(state):
+    flat_state = []
+    for s in state:
+        try:
+            flat_state += s
+        except:
+            flat_state += [s]
+    return flat_state
+
+
 class DymolaBaseEnv(gym.Env):
     """
     A variation of the ModelicaGym FMU interface that uses the Dymola API.
@@ -111,7 +121,8 @@ class DymolaBaseEnv(gym.Env):
                                                 initialValues=self.action,
                                                 finalNames=self.model_output_names)
         self.state = res[1]
-        return self.state
+        self.state = self.postprocess_state(self.state)
+        return flatten(self.state)
 
     def step(self, action):
         """
@@ -151,7 +162,7 @@ class DymolaBaseEnv(gym.Env):
 
         # Simulate and observe result state
         self.done, self.state = self.do_simulation()
-
+        self.state = self.postprocess_state(self.state)
         # Check if experiment has finished
         # self.done = self._is_done()
 
@@ -163,7 +174,7 @@ class DymolaBaseEnv(gym.Env):
         else:
             logger.warn("Experiment step done, SIMULATION FAILED.")
 
-        return self.state, self._reward_policy(), self.done, {}
+        return flatten(self.state), self._reward_policy(), self.done, {}
 
     # logging
     def get_log_file_name(self):
