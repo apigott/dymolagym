@@ -5,18 +5,39 @@ import gym
 from dymola.dymola_interface import DymolaInterface
 import numpy as np
 from enum import Enum
+import time
+import concurrent.futures as futures
 
 logger = logging.getLogger(__name__)
 
 def flatten(state):
-    flat_state = []
-    for s in state:
-        try:
-            flat_state += s
-        except:
-            flat_state += [s]
-    return flat_state
+    return state
+    # flat_state = []
+    # for s in state:
+    #     try:
+    #         flat_state += s
+    #     except:
+    #         flat_state += [s]
+    # print(flat_state)
+    # return flat_state
 
+def timeout(timelimit):
+    def decorator(func):
+        def decorated(*args, **kwargs):
+            with futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(func, *args, **kwargs)
+                try:
+                    result = future.result(timelimit)
+                except futures.TimeoutError:
+                    print('Time out!')
+                    result= None
+                else:
+                    print(result)
+                executor._threads.clear()
+                futures.thread._threads_queues.clear()
+                return result
+        return decorated
+    return decorator
 
 class DymolaBaseEnv(gym.Env):
     """
@@ -44,23 +65,9 @@ class DymolaBaseEnv(gym.Env):
         logger.setLevel(log_level)
 
         self.model_name = mo_name
-        self.dymola = DymolaInterface()
-        self.dymola.ExecuteCommand("Advanced.Define.DAEsolver = true")
-
-        # load libraries
-        loaded = []
-        for lib in libs: # all paths relative to the cwd
-            loaded += [self.dymola.openModel(lib, changeDirectory=False)]
-
-        if not False in loaded:
-            logger.debug("Successfully loaded all libraries.")
-        else:
-            logger.error("Dymola could not find all models.")
-
-        if not os.path.isdir('temp_dir'):
-            os.mkdir('temp_dir')
-        self.temp_dir = os.path.join(os.getcwd(), "temp_dir")
-        self.dymola.cd('temp_dir')
+        self.dymola = None
+        self.libs = libs
+        self.reset_dymola()
 
         # if you reward policy is different from just reward/penalty - implement custom step method
         self.positive_reward = config.get('positive_reward')
@@ -107,14 +114,17 @@ class DymolaBaseEnv(gym.Env):
         if os.path.isdir('temp_dir'):
             # print("Removing old files...")
             for file in os.listdir('temp_dir'):
-                os.remove(os.path.join(os.getcwd(), 'temp_dir',file))
+                try:
+                    os.remove(os.path.join(os.getcwd(), 'temp_dir',file))
+                except:
+                    pass
 
         self.action = self.default_action
         self.start = 0
         self.stop = self.tau
-        print("Resetting...")
-        print("Initial names: ", self.model_input_names)
-        print("Initial values: ", self.action)
+        # print("Resetting...")
+        # print("Initial names: ", self.model_input_names)
+        # print("Initial values: ", self.action)
         res = self.dymola.simulateExtendedModel(self.model_name,
                                                 startTime=self.start, stopTime=self.start,
                                                 initialNames=self.model_input_names,
@@ -122,7 +132,35 @@ class DymolaBaseEnv(gym.Env):
                                                 finalNames=self.model_output_names)
         self.state = res[1]
         self.state = self.postprocess_state(self.state)
+        self.reset_flag = False
         return flatten(self.state)
+
+    def reset_dymola(self):
+        print('resetting dymola...')
+        # try:
+        #     self.dymola.close()
+        # except:
+        #     print("couldn't close dymola")
+        #     pass
+
+        self.dymola = DymolaInterface()
+        self.dymola.ExecuteCommand("Advanced.Define.DAEsolver = true")
+
+        # load libraries
+        loaded = []
+        for lib in self.libs: # all paths relative to the cwd
+            loaded += [self.dymola.openModel(lib, changeDirectory=False)]
+
+        if not False in loaded:
+            logger.debug("Successfully loaded all libraries.")
+        else:
+            logger.error("Dymola could not find all models.")
+
+        if not os.path.isdir('temp_dir'):
+            os.mkdir('temp_dir')
+        self.temp_dir = os.path.join(os.getcwd(), "temp_dir")
+        self.dymola.cd('temp_dir')
+        return
 
     def step(self, action):
         """
@@ -131,6 +169,7 @@ class DymolaBaseEnv(gym.Env):
         :param action: action to be executed.
         :return: resulting state
         """
+        print(self.start)
         logger.debug("Experiment next step was called.")
         if self.done:
             logging.warning(
@@ -160,8 +199,17 @@ class DymolaBaseEnv(gym.Env):
 
         self.action = action
 
+        # Reset if the last timestep failed
+        if self.reset_flag:
+            self.reset()
+
         # Simulate and observe result state
-        self.done, self.state = self.do_simulation()
+        try:
+            self.done, self.state = self.do_simulation() # will fail on unpack
+        except:
+            self.reset_dymola()
+            self.reset()
+            self.done, self.state = self.do_simulation()
         self.state = self.postprocess_state(self.state)
         # Check if experiment has finished
         # self.done = self._is_done()
@@ -173,6 +221,8 @@ class DymolaBaseEnv(gym.Env):
             self.stop += self.tau
         else:
             logger.warn("Experiment step done, SIMULATION FAILED.")
+            self.reset_flag = True
+            self.done = False
 
         return flatten(self.state), self._reward_policy(), self.done, {}
 
@@ -208,6 +258,7 @@ class DymolaBaseEnv(gym.Env):
         return not results[0]
 
     # part of the step() method extracted for convenience
+    @timeout(15)
     def do_simulation(self):
         """
         Executes simulation by FMU in the time interval [start_time; stop_time]
@@ -219,9 +270,9 @@ class DymolaBaseEnv(gym.Env):
 
         self.dymola.importInitialResult('dsres.mat', atTime=self.start)
 
-        print("Do simulation...")
-        print("Initial names: ", self.model_input_names)
-        print("Initial values: ", self.action)
+        # print("Do simulation...")
+        # print("Initial names: ", self.model_input_names)
+        # print("Initial values: ", self.action)
         res = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start,
                                                 stopTime=self.stop,
                                                 initialNames=self.model_input_names,

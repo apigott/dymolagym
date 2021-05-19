@@ -93,7 +93,8 @@ class IEEE9Env(DymolaBaseEnv):
 
     def _reward_policy(self):
         reward = -10*np.linalg.norm(np.subtract(self.state[0],np.ones(9)))
-        if self.done:
+        if self.reset_flag:
+            print("adding penalty for failure")
             reward -= 10
         # normalized_reward = (reward - self.avg_reward) / (self.max_reward - self.min_reward)
         return reward
