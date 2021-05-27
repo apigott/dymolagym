@@ -7,8 +7,18 @@ import numpy as np
 from enum import Enum
 import time
 import concurrent.futures as futures
+import psutil
 
 logger = logging.getLogger(__name__)
+
+"""
+Notes from sergio:
+render function -- add capability to open the model in dymola
+offline check of results to determine/constrain the action space
+possibly need to change the injection to occur at startTime+0.1 seconds rather than startTime (use a step block)
+    look into how the OpenModelica gym repo did this
+
+"""
 
 def flatten(state):
     return state
@@ -31,8 +41,6 @@ def timeout(timelimit):
                 except futures.TimeoutError:
                     print('Time out!')
                     result= None
-                else:
-                    print(result)
                 executor._threads.clear()
                 futures.thread._threads_queues.clear()
                 return result
@@ -79,6 +87,7 @@ class DymolaBaseEnv(gym.Env):
         self.model_output_names = config.get('model_output_names')
         self.model_parameters = config.get('model_parameters')
         self.default_action = config['default_action']
+        self.method = config['method']
 
         # initialize the model time and state
         self.start = 0
@@ -110,6 +119,7 @@ class DymolaBaseEnv(gym.Env):
         OpenAI Gym API. Determines restart procedure of the environment
         :return: environment state after restart
         """
+        print('the model will be reset')
         logger.info("Resetting the environment by deleting old results files.")
         if os.path.isdir('temp_dir'):
             # print("Removing old files...")
@@ -122,26 +132,32 @@ class DymolaBaseEnv(gym.Env):
         self.action = self.default_action
         self.start = 0
         self.stop = self.tau
-        # print("Resetting...")
-        # print("Initial names: ", self.model_input_names)
-        # print("Initial values: ", self.action)
+
         res = self.dymola.simulateExtendedModel(self.model_name,
                                                 startTime=self.start, stopTime=self.start,
                                                 initialNames=self.model_input_names,
                                                 initialValues=self.action,
-                                                finalNames=self.model_output_names)
+                                                finalNames=self.model_output_names,
+                                                method=self.method)
+
+        # print(self.dymola.getLastError())
+
         self.state = res[1]
+        self.cached_values = None
         self.state = self.postprocess_state(self.state)
         self.reset_flag = False
+
+        print('the model has been reset')
         return flatten(self.state)
 
     def reset_dymola(self):
         print('resetting dymola...')
-        # try:
+        # if self.dymola: # this doesn't really seem to be working. It hangs
         #     self.dymola.close()
-        # except:
-        #     print("couldn't close dymola")
-        #     pass
+        PROCNAME = "Dymola.exe"
+        for proc in psutil.process_iter():
+            if proc.name() == PROCNAME:
+                proc.kill()
 
         self.dymola = DymolaInterface()
         self.dymola.ExecuteCommand("Advanced.Define.DAEsolver = true")
@@ -160,6 +176,7 @@ class DymolaBaseEnv(gym.Env):
             os.mkdir('temp_dir')
         self.temp_dir = os.path.join(os.getcwd(), "temp_dir")
         self.dymola.cd('temp_dir')
+        print('dymola has been reset')
         return
 
     def step(self, action):
@@ -169,7 +186,6 @@ class DymolaBaseEnv(gym.Env):
         :param action: action to be executed.
         :return: resulting state
         """
-        print(self.start)
         logger.debug("Experiment next step was called.")
         if self.done:
             logging.warning(
@@ -204,9 +220,12 @@ class DymolaBaseEnv(gym.Env):
             self.reset()
 
         # Simulate and observe result state
-        try:
-            self.done, self.state = self.do_simulation() # will fail on unpack
-        except:
+        res = self.do_simulation()
+        if res:
+            self.done, self.state = res # will fail on unpack
+        else:
+            print('it failed')
+            # print(self.dymola.getLastError())
             self.reset_dymola()
             self.reset()
             self.done, self.state = self.do_simulation()
@@ -270,17 +289,18 @@ class DymolaBaseEnv(gym.Env):
 
         self.dymola.importInitialResult('dsres.mat', atTime=self.start)
 
-        # print("Do simulation...")
-        # print("Initial names: ", self.model_input_names)
-        # print("Initial values: ", self.action)
-        res = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start,
+        try:
+            res = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start,
                                                 stopTime=self.stop,
                                                 initialNames=self.model_input_names,
                                                 initialValues=self.action,
-                                                finalNames=self.model_output_names)
+                                                finalNames=self.model_output_names,
+                                                method=self.method)
 
-        logger.debug("Simulation results: {}".format(res))
-        return self._is_done(res), self.get_state(res) # a list of the final values
+            logger.debug("Simulation results: {}".format(res))
+            return self._is_done(res), self.get_state(res) # a list of the final values
+        except:
+            return None
 
     def _reward_policy(self):
         """
