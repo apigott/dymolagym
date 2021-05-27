@@ -1,0 +1,18 @@
+Log-file of program ./dymosim
+(generated: Thu May 27 17:21:05 2021)
+
+dymosim started
+... "BouncingBall" simulating
+... "dsin.txt" loading (dymosim input file)
+
+... Error message from dymosim
+Integration method RKFIX2 is not allowed, since for a
+DAE-model only DAE integration methods are possible
+(use method=DASSL).
+
+The selected solver is not a DAE solver. Either select
+a solver that supports DAEs or disable DAE mode
+(Advanced.Define.DAEsolver = false).
+
+
+ERROR: The simulation of BouncingBall FAILED
