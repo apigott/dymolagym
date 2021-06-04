@@ -88,6 +88,7 @@ class DymolaBaseEnv(gym.Env):
         self.model_parameters = config.get('model_parameters')
         self.default_action = config['default_action']
         self.method = config['method']
+        self.fixedstepsize = None
 
         # initialize the model time and state
         self.start = 0
@@ -138,14 +139,12 @@ class DymolaBaseEnv(gym.Env):
                                                 initialNames=self.model_input_names,
                                                 initialValues=self.action,
                                                 finalNames=self.model_output_names,
-                                                method=self.method)
-
-        # print(self.dymola.getLastError())
+                                                method=self.method,
+                                                fixedstepsize=self.fixedstepsize)
 
         self.state = res[1]
         self.cached_values = None
         self.state = self.postprocess_state(self.state)
-        self.reset_flag = False
 
         print('the model has been reset')
         return flatten(self.state)
@@ -154,10 +153,10 @@ class DymolaBaseEnv(gym.Env):
         print('resetting dymola...')
         # if self.dymola: # this doesn't really seem to be working. It hangs
         #     self.dymola.close()
-        PROCNAME = "Dymola.exe"
-        for proc in psutil.process_iter():
-            if proc.name() == PROCNAME:
-                proc.kill()
+        # PROCNAME = "Dymola.exe"
+        # for proc in psutil.process_iter():
+        #     if proc.name() == PROCNAME:
+        #         proc.kill()
 
         self.dymola = DymolaInterface()
         self.dymola.ExecuteCommand("Advanced.Define.DAEsolver = true")
@@ -215,23 +214,9 @@ class DymolaBaseEnv(gym.Env):
 
         self.action = action
 
-        # Reset if the last timestep failed
-        if self.reset_flag:
-            self.reset()
-
         # Simulate and observe result state
-        res = self.do_simulation()
-        if res:
-            self.done, self.state = res # will fail on unpack
-        else:
-            print('it failed')
-            # print(self.dymola.getLastError())
-            self.reset_dymola()
-            self.reset()
-            self.done, self.state = self.do_simulation()
+        self.done, self.state = self.do_simulation()
         self.state = self.postprocess_state(self.state)
-        # Check if experiment has finished
-        # self.done = self._is_done()
 
         # Move simulation time interval if experiment continues
         if not self.done:
@@ -239,8 +224,9 @@ class DymolaBaseEnv(gym.Env):
             self.start += self.tau
             self.stop += self.tau
         else:
+            print(self.done)
             logger.warn("Experiment step done, SIMULATION FAILED.")
-            self.reset_flag = True
+            self.state = self.reset()
             self.done = False
 
         return flatten(self.state), self._reward_policy(), self.done, {}
