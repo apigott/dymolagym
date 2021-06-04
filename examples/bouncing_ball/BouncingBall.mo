@@ -6,6 +6,8 @@ model BouncingBall "The 'classic' bouncing ball model"
   parameter Height h0=1.0 "Initial height";
   Height h "Height";
   Velocity v(start=0.0) "Velocity";
+  Modelica.Blocks.Sources.Trapezoid variance;
+  Modelica.Blocks.Sources.Constant test;
 initial equation
   h = h0;
 equation

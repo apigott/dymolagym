@@ -1,18 +1,35 @@
 Log-file of program ./dymosim
-(generated: Thu May 27 17:21:05 2021)
+(generated: Fri Jun  4 13:57:43 2021)
 
 dymosim started
 ... "BouncingBall" simulating
 ... "dsin.txt" loading (dymosim input file)
+... starting from known values.
+... "dsres.mat" creating (simulation result file)
 
-... Error message from dymosim
-Integration method RKFIX2 is not allowed, since for a
-DAE-model only DAE integration methods are possible
-(use method=DASSL).
+The translated model is an ODE. Integrating using DAE solver.
 
-The selected solver is not a DAE solver. Either select
-a solver that supports DAEs or disable DAE mode
-(Advanced.Define.DAEsolver = false).
+Integration started at T = 1.5 using integration method DASSL
+(DAE multi-step solver (dassl/dasslrt of Petzold modified by Dassault Systemes))
 
+Integration terminated successfully at T = 1.75
+   CPU-time for integration                : 0.017 seconds
+   CPU-time for one grid interval          : 0.034 milliseconds
+   CPU-time for initialization             : 0 seconds
+   Number of result points                 : 502
+   Number of grid points                   : 501
+   Number of accepted steps                : 19
+   Number of f-evaluations (dynamics)      : 19
+   Number of crossing function evaluations : 519
+   Number of Jacobian-evaluations          : 18
+   Number of model time events             : 0
+   Number of input time events             : 0
+   Number of state events                  : 0
+   Number of step events                   : 0
+   Minimum integration stepsize            : 5e-07
+   Maximum integration stepsize            : 0.119
+   Maximum integration order               : 2
+Calling terminal section
+... "dsfinal.txt" creating (final states)
 
-ERROR: The simulation of BouncingBall FAILED
+SUCCESSFUL simulation of BouncingBall

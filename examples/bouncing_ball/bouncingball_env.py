@@ -41,7 +41,7 @@ class BouncingBallEnv(DymolaBaseEnv):
         self.pole_transform = None
         self.cart_transform = None
 
-        self.action_names = []
+        self.action_names = ['test.k']
         self.state_names = ['h']
         config = {
             'model_input_names': self.action_names,

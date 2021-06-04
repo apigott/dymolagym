@@ -32,14 +32,12 @@ class IEEE9Env(DymolaBaseEnv):
     """
 
     def __init__(self, mo_name, libs, default_action, time_step, positive_reward,
-                 negative_reward, log_level):
+                 negative_reward, log_level, method):
 
         logger.setLevel(log_level)
 
         self.viewer = None
         self.display = None
-        self.pole_transform = None
-        self.cart_transform = None
 
         self.action_names = ['G1.pref.k','G2.pref.k','G3.pref.k']
         self.state_names = ['integrator',
@@ -55,7 +53,8 @@ class IEEE9Env(DymolaBaseEnv):
             'time_step': time_step,
             'positive_reward': positive_reward,
             'negative_reward': negative_reward,
-            'default_action': default_action
+            'default_action': default_action,
+            'method': method
         }
 
         self.n_steps = 0
@@ -92,10 +91,7 @@ class IEEE9Env(DymolaBaseEnv):
         return spaces.Box(low, high)
 
     def _reward_policy(self):
-        reward = -1*np.linalg.norm(10*np.subtract(self.state[0],np.ones(9)))
-        if self.reset_flag:
-            print("adding penalty for failure")
-            reward -= 10
+        reward = -1*np.linalg.norm(100*np.subtract(self.state[0],np.ones(9)))
         # normalized_reward = (reward - self.avg_reward) / (self.max_reward - self.min_reward)
         return reward
 

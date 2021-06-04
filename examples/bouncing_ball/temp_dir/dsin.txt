@@ -7,16 +7,16 @@ Modelica experiment file
 
 #    Experiment parameters
 double experiment(7,1)
-       0                   # StartTime    Time at which integration starts
+  1.5000000000000000E+00   # StartTime    Time at which integration starts
                            #              (and linearization and trimming time)
-  2.5000000000000000E-01   # StopTime     Time at which integration stops
+  1.7500000000000000E+00   # StopTime     Time at which integration stops
        0                   # Increment    Communication step size, if > 0
      500                   # nInterval    Number of communication intervals, if > 0
   1.0000000000000000E-04   # Tolerance    Relative precision of signals for
                            #              simulation, linearization and trimming
        0                   # MaxFixedStep Maximum step size of fixed step size
                            #              integrators, if > 0.0
-      12                   # Algorithm    Integration algorithm as integer (1...28)
+       8                   # Algorithm    Integration algorithm as integer (1...28)
                            #
                            #             | model|       |        | dense | state |
                            # Algorithm   | typ  | stiff | order  | output| event |
@@ -102,21 +102,72 @@ int settings(13,1)
 
 
 #    Names of initial variables
-char initialName(6,6)
+char initialName(21,18)
 e
 h0
 h
 der(h)
 v
 der(v)
+variance.amplitude
+variance.rising
+variance.width
+variance.falling
+variance.period
+variance.nperiod
+variance.y
+variance.offset
+variance.startTime
+variance.T_rising
+variance.T_width
+variance.T_falling
+variance.T_start
+variance.count
+test.k
 
-double initialValue(6,6)
- -1  8.0000000000000004E-01  0  0  1  280   # e
- -1       1                  0  0  1  280   # h0
- -1       0                  0  0  2  272   # h
-  0       0                  0  0  3  256   # der(h)
- -1       0                  0  0  2  280   # v
-  0       0                  0  0  3  256   # der(v)
+double initialValue(21,6)
+ -2  8.0000001192092896E-01       0                       0                
+  1   280   # e
+ -2       1                       0                       0                
+  1   280   # h0
+ -2  4.0286207199096680E-01       0                       0                
+  2   272   # h
+ -2 -3.6359155178070068E-01       0                       0                
+  3   256   # der(h)
+ -2 -3.6359155178070068E-01       0                       0                
+  2   280   # v
+ -2 -9.8100004196166992E+00       0                       0                
+  3   256   # der(v)
+ -2       1                       0                       0                
+  1   280   # variance.amplitude
+ -2       0                       0                 1.0000000000000000E+100
+  1   280   # variance.rising
+ -2  5.0000000000000000E-01       0                 1.0000000000000000E+100
+  1   280   # variance.width
+ -2       0                       0                 1.0000000000000000E+100
+  1   280   # variance.falling
+ -2       1                  9.9999999999999997E-61 1.0000000000000000E+100
+  1   280   # variance.period
+ -2      -1                       0                       0                
+  1   282   # variance.nperiod
+ -2       0                       0                       0                
+  6   256   # variance.y
+ -2       0                       0                       0                
+  1   280   # variance.offset
+ -2       0                       0                       0                
+  1   280   # variance.startTime
+  0       0                       0                       0                
+  6  1280   # variance.T_rising
+  0       0                       0                       0                
+  6  1280   # variance.T_width
+  0       0                       0                       0                
+  6  1280   # variance.T_falling
+  0       0                       0                       0                
+  6  1344   # variance.T_start
+  0       0                       0                       0                
+  6  1346   # variance.count
+ -2       1                       0                       0                
+  1   280   # test.k
 
 
 # Matrix with 6 columns defining the initial value calculation
@@ -167,11 +218,26 @@ double initialValue(6,6)
 #   nominal value (and maybe minimum and maximum values given in 
 #   column 3 and 4). If these values are zero, scale(i)=1 is used).
 #
-char initialDescription(6,30)
+char initialDescription(21,75)
 Coefficient of restitution [1]
 Initial height [m]
 Height [m]
 der(Height) [m/s]
 Velocity [m/s]
 der(Velocity) [m/s2]
+Amplitude of trapezoid
+Rising duration of trapezoid [s]
+Width duration of trapezoid [s]
+Falling duration of trapezoid [s]
+Time for one period [s]
+Number of periods (< 0 means infinite number of periods) [:#(type=Integer)]
+Connector of Real output signal
+Offset of output signal y
+Output y = offset for time < startTime [s]
+End time of rising phase within one period [s]
+End time of width phase within one period [s]
+End time of falling phase within one period [s]
+Start time of current period [s]
+Period count [:#(type=Integer)]
+Constant output value
 
