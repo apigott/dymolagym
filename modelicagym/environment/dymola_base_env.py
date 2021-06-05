@@ -138,14 +138,12 @@ class DymolaBaseEnv(gym.Env):
                                                 startTime=self.start, stopTime=self.start,
                                                 initialNames=self.model_input_names,
                                                 initialValues=self.action,
-                                                finalNames=self.model_output_names,
-                                                method=self.method,
-                                                fixedstepsize=self.fixedstepsize)
+                                                finalNames=self.model_output_names)
 
         self.state = res[1]
         self.cached_values = None
         self.state = self.postprocess_state(self.state)
-
+        self.done = False
         print('the model has been reset')
         return flatten(self.state)
 
@@ -215,9 +213,8 @@ class DymolaBaseEnv(gym.Env):
         self.action = action
 
         # Simulate and observe result state
-        #self.done, self.state = self.do_simulation()
-        #self.state = self.postprocess_state(self.state)
-        self.done = self.do_simulation()
+        self.done, self.state = self.do_simulation()
+        self.state = self.postprocess_state(self.state)
 
         # Move simulation time interval if experiment continues
         if not self.done:
@@ -227,10 +224,11 @@ class DymolaBaseEnv(gym.Env):
         else:
             print(self.done)
             logger.warn("Experiment step done, SIMULATION FAILED.")
-            #self.state = self.reset()
+            self.state = self.reset()
             self.done = False
 
-        return #flatten(self.state), self._reward_policy(), self.done, {}
+        print(self.state, self.done)
+        return flatten(self.state), self._reward_policy(), self.done, {}
 
     # logging
     def get_log_file_name(self):
@@ -274,19 +272,20 @@ class DymolaBaseEnv(gym.Env):
         """
         logger.debug("Simulation started for time interval {}-{}".format(self.start, self.stop))
 
-        if os.path.isfile('temp_dir/dsres.mat'):
-            self.dymola.importInitial('dsres.mat')
+        self.dymola.importInitialResult('dsres.mat', atTime=self.start)
 
-        res = self.dymola.simulateModel(f"{self.model_name}(test.k={np.random.uniform(0,5)})", startTime=self.start,
-                                            stopTime=self.stop,
-                                            # initialNames=self.model_input_names,
-                                            # initialValues=self.action,
-                                            # finalNames=self.model_output_names,
-                                            method=self.method)
+        try:
+            res = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start,
+                                                stopTime=self.stop,
+                                                initialNames=self.model_input_names,
+                                                initialValues=self.action,
+                                                finalNames=self.model_output_names,
+                                                method=self.method)
 
-        logger.debug("Simulation results: {}".format(res))
-        return res
-        #return self._is_done(res) , self.get_state(res) # a list of the final values
+            logger.debug("Simulation results: {}".format(res))
+            return self._is_done(res), self.get_state(res) # a list of the final values
+        except:
+            return None
 
     def _reward_policy(self):
         """
@@ -311,4 +310,7 @@ class DymolaBaseEnv(gym.Env):
 
         :return: environment
         """
-        return
+        if self.model_parameters is not None:
+            self.model.set(list(self.model_parameters),
+                           list(self.model_parameters.values()))
+        return self

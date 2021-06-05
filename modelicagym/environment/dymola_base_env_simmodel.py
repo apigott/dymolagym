@@ -218,7 +218,7 @@ class DymolaBaseEnvSimModel(gym.Env):
                 model += ','
             model += self.model_input_names[i]
             model += '='
-            model += str(self.action)
+            model += str(self.action[i])
         model += ')'
         print(model)
         res = self.dymola.simulateModel(model, startTime=self.start,
