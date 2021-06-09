@@ -8,7 +8,7 @@ from enum import Enum
 import time
 import concurrent.futures as futures
 import psutil
-
+import DyMat
 logger = logging.getLogger(__name__)
 
 """
@@ -81,6 +81,7 @@ class DymolaBaseEnvSimModel(gym.Env):
         self.default_action = config['default_action']
         self.method = config['method']
         self.fixedstepsize = None
+        self.debug_data = {name:[] for name in self.model_output_names}
 
         # initialize the model time and state
         self.start = 0
@@ -91,6 +92,8 @@ class DymolaBaseEnvSimModel(gym.Env):
         # OpenAI Gym requirements
         self.action_space = self._get_action_space()
         self.observation_space = self._get_observation_space()
+
+
 
     def reset(self):
         """
@@ -156,45 +159,12 @@ class DymolaBaseEnvSimModel(gym.Env):
         :param action: action to be executed.
         :return: resulting state
         """
-        logger.debug("Experiment next step was called.")
-        if self.done:
-            logging.warning(
-                """You are calling 'step()' even though this environment has already returned done = True.
-                You should always call 'reset()' once you receive 'done = True' -- any further steps are
-                undefined behavior.""")
-            return np.array(self.state), self.negative_reward, self.done, {}
-
-        # check if action is a list. If not - create list of length 1
-        try:
-            iter(action)
-        except TypeError:
-            action = [action]
-            logging.warning("Model input values (action) should be passed as a list")
-
-        # Check if number of model inputs equals number of values passed
-        if len(action) != len(list(self.model_input_names)):
-            message = "List of values for model inputs should be of the length {}," \
-                      "equal to the number of model inputs. Actual length {}".format(
-                len(list(self.model_input_names)), len(action))
-            logging.error(message)
-            raise ValueError(message)
-
-        # Set input values of the model
-        logger.debug("model input: {}, values: {}".format(self.model_input_names, action))
-
         self.action = action
-
-        # Simulate and observe result state
         self.done = self.do_simulation()
-        self.done = False
-        # Move simulation time interval if experiment continues
-        if not self.done:
-            logger.debug("Experiment step done, experiment continues.")
-            self.start += self.tau
-            self.stop += self.tau
-        else:
-            logger.warn("Experiment step done, SIMULATION FAILED.")
-            self.state = self.reset()
+        self.state = self.get_state()
+
+        self.start += self.tau
+        self.stop += self.tau
 
         return self.state, self._reward_policy(), self.done, {}
 
@@ -209,9 +179,10 @@ class DymolaBaseEnvSimModel(gym.Env):
         """
         logger.debug("Simulation started for time interval {}-{}".format(self.start, self.stop))
 
-        if os.path.isfile('temp_dir/dsres.mat'):
-            self.dymola.importInitial('dsres.mat')
+        # get the existing results
+        self.dymola.importInitial()
 
+        # get actions to be taken
         model = self.model_name+'('
         for i in range(len(self.model_input_names)):
             if i > 0:
@@ -221,9 +192,10 @@ class DymolaBaseEnvSimModel(gym.Env):
             model += str(self.action[i])
         model += ')'
         print(model)
+
+        # do the actual simulation
         res = self.dymola.simulateModel(model, startTime=self.start,
-                                            stopTime=self.stop,
-                                            method=self.method)
+                                            stopTime=self.stop)
 
         logger.debug("Simulation results: {}".format(res))
         return not(res)
@@ -236,17 +208,12 @@ class DymolaBaseEnvSimModel(gym.Env):
         """
         res_flag = False
         state = []
-        with open('temp_dir/dsfinal.txt', 'r') as file:
-            for line in file:
-                if not res_flag:
-                    if 'Names of initial variables' in line:
-                        res_flag = True
-                else:
-                    for item in self.model_output_names:
-                        if f' # {item}' in line:
-                            if line.split()[-1] == item:
-                                state += [float(prev_line.split()[1])]
-                prev_line = line
+        data = DyMat.DyMatFile('temp_dir/dsres.mat')
+
+        for name in self.model_output_names:
+            state += [data[name][-1]]
+            self.debug_data[name] += data[name].tolist()
+
         return state
 
     # internal logic

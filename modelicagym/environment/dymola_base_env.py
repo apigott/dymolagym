@@ -227,7 +227,6 @@ class DymolaBaseEnv(gym.Env):
             self.state = self.reset()
             self.done = False
 
-        print(self.state, self.done)
         return flatten(self.state), self._reward_policy(), self.done, {}
 
     # logging
