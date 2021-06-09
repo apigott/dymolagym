@@ -1,0 +1,32 @@
+Log-file of program ./dymosim
+(generated: Wed Jun  9 09:28:38 2021)
+
+dymosim started
+... "IEEE9.IEEE_9_wVariation" simulating
+... "dsin.txt" loading (dymosim input file)
+... "dsres.mat" creating (simulation result file)
+
+The translated model is a DAE. Integrating using DAE solver.
+
+Integration started at T = 0 using integration method DASSL
+(DAE multi-step solver (dassl/dasslrt of Petzold modified by Dassault Systemes))
+
+Integration terminated successfully at T = 0
+   CPU-time for integration                : 0 seconds
+   CPU-time for initialization             : 0.001 seconds
+   Number of result points                 : 1
+   Number of grid points                   : 1
+   Number of accepted steps                : 0
+   Number of f-evaluations (dynamics)      : 0
+   Number of crossing function evaluations : 0
+   Number of Jacobian-evaluations          : 0
+   Number of model time events             : 0
+   Number of input time events             : 0
+   Number of state events                  : 0
+   Number of step events                   : 0
+   Minimum integration stepsize            : 0
+   Maximum integration stepsize            : 0
+   Maximum integration order               : 0
+... "dsfinal.txt" creating (final states)
+
+SUCCESSFUL simulation of IEEE9.IEEE_9_wVariation
