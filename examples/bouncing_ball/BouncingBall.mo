@@ -8,9 +8,11 @@ model BouncingBall "The 'classic' bouncing ball model"
   Velocity v(start=0.0) "Velocity";
   Modelica.Blocks.Sources.Trapezoid variance;
   Modelica.Blocks.Sources.Constant test;
+  Real my_time;
 initial equation
   h = h0;
 equation
+  my_time = time;
   v = der(h);
   der(v) = -9.81;
   when h<0 then

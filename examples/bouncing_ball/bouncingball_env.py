@@ -8,11 +8,11 @@ import logging
 import math
 import numpy as np
 from gym import spaces
-from modelicagym.environment import DymolaBaseEnv
+from modelicagym.environment import DymolaBaseEnv, DymolaBaseEnvSimModel
 
 logger = logging.getLogger(__name__)
 
-class BouncingBallEnv(DymolaBaseEnv):
+class BouncingBallEnv(DymolaBaseEnvSimModel):
     """
     Wrapper class for creation of cart-pole environment using JModelica-compiled FMU (FMI standard v.2.0).
 
@@ -42,7 +42,7 @@ class BouncingBallEnv(DymolaBaseEnv):
         self.cart_transform = None
 
         self.action_names = ['test.k']
-        self.state_names = ['h']
+        self.state_names = ['h', 'test.k', 'variance.y', 'my_time']
         config = {
             'model_input_names': self.action_names,
             'model_output_names': self.state_names,
@@ -89,7 +89,7 @@ class BouncingBallEnv(DymolaBaseEnv):
         return spaces.Box(low, high)
 
     def _reward_policy(self):
-        reward = self.state[0]
+        reward = self.state#[0]
         return reward
 
     def step(self, action):
