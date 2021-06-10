@@ -1,10 +1,11 @@
 within ;
 model NonlinearPendulum "Nonlinear pendulum model"
+  Real my_time;
   parameter Real theta0 = Modelica.Constants.pi;
   parameter Real omega0 = 20;
   parameter Real a = 2;
   parameter Real b = 3;
-  parameter Real c = 0;
+  parameter Real c = 100;
 
   Real theta(start = theta0, fixed = true);
   Real omega(start = omega0, fixed = true);
@@ -16,7 +17,7 @@ initial equation
   omega = omega0;
 
 equation
-
+  my_time = time;
   der(theta) = omega;
   der(omega) = - sin(theta) - b * omega + c * u1;
 
