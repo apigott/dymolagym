@@ -42,10 +42,12 @@ class BouncingBallEnv(DymolaBaseEnvSimModel):
         self.cart_transform = None
 
         self.action_names = ['test.k']
-        self.state_names = ['h', 'test.k', 'variance.y', 'my_time']
+        self.state_names = ['h', 'test.y','test.k', 'variance.y', 'my_time']
+        self.model_initial_names = {'h0':'h'}
         config = {
             'model_input_names': self.action_names,
             'model_output_names': self.state_names,
+            'model_initial_names': self.model_initial_names,
             'model_parameters': {},
             'initial_state': (1),
             'time_step': time_step,

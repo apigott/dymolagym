@@ -43,9 +43,11 @@ class VanDerPolEnv(DymolaBaseEnvSimModel):
 
         self.action_names = ['u1']
         self.state_names = ['x1','x2','my_time']
+        self.model_initial_names = {}
         config = {
             'model_input_names': self.action_names,
             'model_output_names': self.state_names,
+            'model_initial_names': self.model_initial_names,
             'model_parameters': {},
             'initial_state': (1),
             'time_step': time_step,

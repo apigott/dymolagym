@@ -77,12 +77,13 @@ class DymolaBaseEnvSimModel(gym.Env):
         self.tau = config['time_step']
         self.model_input_names = config['model_input_names']
         self.model_output_names = config['model_output_names']
+        # self.model_initial_names = config['model_initial_names']
         self.model_parameters = config['model_parameters']
         self.default_action = config['default_action']
         self.method = config['method']
         self.fixedstepsize = None
         self.debug_data = {name:[] for name in self.model_output_names}
-
+        self.initial_data = {k:{'name':v, 'value':None} for k,v in self.model_initial_names.items()}
         # initialize the model time and state
         self.start = 0
         self.stop = self.tau
@@ -190,6 +191,12 @@ class DymolaBaseEnvSimModel(gym.Env):
             model += self.model_input_names[i]
             model += '='
             model += str(self.action[i])
+
+        # for name,v in self.initial_data.items():
+        #     model += ','
+        #     model += name
+        #     model += '='
+        #     model += str(v['value'])
         model += ')'
         print(model)
 
@@ -214,6 +221,8 @@ class DymolaBaseEnvSimModel(gym.Env):
             state += [data[name][-1]]
             self.debug_data[name] += data[name].tolist()
 
+        # for name in self.model_initial_names:
+        #     self.initial_data[name]['value'] = data[self.initial_data[name]['name']][-1]
         return state
 
     # internal logic
