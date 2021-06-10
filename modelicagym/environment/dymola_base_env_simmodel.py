@@ -83,7 +83,7 @@ class DymolaBaseEnvSimModel(gym.Env):
         self.method = config['method']
         self.fixedstepsize = None
         self.debug_data = {name:[] for name in self.model_output_names}
-        self.initial_data = {k:{'name':v, 'value':None} for k,v in self.model_initial_names.items()}
+        # self.initial_data = {k:{'name':v, 'value':None} for k,v in self.model_initial_names.items()}
         # initialize the model time and state
         self.start = 0
         self.stop = self.tau
