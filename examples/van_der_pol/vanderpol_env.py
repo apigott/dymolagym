@@ -12,7 +12,7 @@ from modelicagym.environment import DymolaBaseEnv, DymolaBaseEnvSimModel
 
 logger = logging.getLogger(__name__)
 
-class VanDerPolEnv(DymolaBaseEnvSimModel):
+class VanDerPolEnv(DymolaBaseEnv):
     """
     Wrapper class for creation of cart-pole environment using JModelica-compiled FMU (FMI standard v.2.0).
 
@@ -41,8 +41,8 @@ class VanDerPolEnv(DymolaBaseEnvSimModel):
         self.pole_transform = None
         self.cart_transform = None
 
-        self.action_names = ['u1']
-        self.state_names = ['x1','x2','my_time']
+        self.action_names = ['k']
+        self.state_names = ['vanderpol.x1','vanderpol.x2','vanderpol.my_time']
         self.model_initial_names = {}
         config = {
             'model_input_names': self.action_names,
