@@ -9,3 +9,4 @@ from .bouncing_ball.bouncingball_env import *
 from .smib_white_noise.smib_white_noise_env import *
 from .van_der_pol.vanderpol_env import *
 from .nonlinear_pendulum.pendulum_env import *
+from .nonlinear_pendulum.pendulum_env_sem import *

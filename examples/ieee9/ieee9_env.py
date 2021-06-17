@@ -39,10 +39,21 @@ class IEEE9Env(DymolaBaseEnv):
         self.viewer = None
         self.display = None
 
-        self.action_names = ['G1.pref.k','G2.pref.k','G3.pref.k']
-        self.state_names = ['integrator',
-                            'G1.pref.k','G2.pref.k','G3.pref.k',
-                            'load_B8.P', 'load_B6.P', 'load_B5.P']
+        self.action_names = ['G1.k','G2.k','G3.k']
+        self.state_names = [
+                            'integrator[1]',
+                            'integrator[2]',
+                            'integrator[3]',
+                            'integrator[4]',
+                            'integrator[5]',
+                            'integrator[6]',
+                            'integrator[7]',
+                            'integrator[8]',
+                            'integrator[9]',
+                            'G1.gENSAL.P','G2.gENROU.P','G3.gENROU.P',
+                            'load_B8.P', 'load_B6.P', 'load_B5.P',
+                            'my_time',
+                            'load_B5.rising']
         # for a time averaged version:
         # self.state_names = ['b1_average.y', 'b2_average.y', ...]
         config = {
@@ -54,7 +65,8 @@ class IEEE9Env(DymolaBaseEnv):
             'positive_reward': positive_reward,
             'negative_reward': negative_reward,
             'default_action': default_action,
-            'method': method
+            'method': method,
+            'additional_debug_states': [f'B{i}.V' for i in range(1,10)]
         }
 
         self.n_steps = 0
@@ -63,9 +75,14 @@ class IEEE9Env(DymolaBaseEnv):
         self.min_reward = -0.5
         self.avg_reward = 0
         self.cached_values = None
+        self.cached_state = None
         # change this to unpack the dictionary __init__(**config), so that some parameters can have default values
         super().__init__(mo_name, libs, config, log_level)
 
+
+
+    # def postprocess_state(self, state):
+    #     return state
     def postprocess_state(self, state):
         processed_states = []
         for s in state:
@@ -86,14 +103,24 @@ class IEEE9Env(DymolaBaseEnv):
         return spaces.Box(low, high)
 
     def _get_observation_space(self):
-        low = -1*np.ones(8 + len(self.state_names))
-        high = 1*np.ones(8 + len(self.state_names))
+        low = -1*np.ones(len(self.state_names))
+        high = 1*np.ones(len(self.state_names))
         return spaces.Box(low, high)
 
     def _reward_policy(self):
-        reward = -1*np.linalg.norm(100*np.subtract(self.state[0],np.ones(9)))
+        if self.cached_state:
+            avg_voltages = np.subtract(self.state[:9], self.cached_state[:9])
+        else:
+            avg_voltages = np.array(self.state[:9])
+        avg_voltages = avg_voltages / self.tau
+        reward = -1*np.linalg.norm(100*avg_voltages)
         # normalized_reward = (reward - self.avg_reward) / (self.max_reward - self.min_reward)
+        self.cached_state = self.state
         return reward
+
+    # def get_state(self, results):
+    #     res = super().get_state(results)
+    #     res += []
 
     def step(self, action):
         self.n_steps += 1
