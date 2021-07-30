@@ -12,7 +12,7 @@ from modelicagym.environment import DymolaBaseEnv, DymolaBaseEnvSimModel
 
 logger = logging.getLogger(__name__)
 
-class BouncingBallEnv(DymolaBaseEnvSimModel):
+class BouncingBallEnv(DymolaBaseEnv):
     """
     Wrapper class for creation of cart-pole environment using JModelica-compiled FMU (FMI standard v.2.0).
 
@@ -41,8 +41,8 @@ class BouncingBallEnv(DymolaBaseEnvSimModel):
         self.pole_transform = None
         self.cart_transform = None
 
-        self.action_names = ['test.k']
-        self.state_names = ['h', 'test.y','test.k', 'variance.y', 'my_time']
+        self.action_names = ['k']
+        self.state_names = ['h', 'variance.y', 'my_time']
         self.model_initial_names = {'h0':'h'}
         config = {
             'model_input_names': self.action_names,
