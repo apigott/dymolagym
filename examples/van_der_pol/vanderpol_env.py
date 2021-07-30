@@ -41,8 +41,8 @@ class VanDerPolEnv(DymolaBaseEnv):
         self.pole_transform = None
         self.cart_transform = None
 
-        self.action_names = ['k']
-        self.state_names = ['vanderpol.x1','vanderpol.x2','vanderpol.my_time']
+        self.action_names = ['k','m']
+        self.state_names = ['vanderpol.x1','vanderpol.x2','vanderpol.my_time','action.y','vanderpol.B1.V','vanderpol.G2.u','vanderpol.G2.add.y','vanderpol.G3.add.y']
         self.model_initial_names = {}
         config = {
             'model_input_names': self.action_names,
@@ -54,7 +54,8 @@ class VanDerPolEnv(DymolaBaseEnv):
             'positive_reward': positive_reward,
             'negative_reward': negative_reward,
             'default_action': default_action,
-            'method': method
+            'method': method,
+            'additional_debug_states':[]
         }
 
         self.n_steps = 0
