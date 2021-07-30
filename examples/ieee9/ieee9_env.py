@@ -9,6 +9,7 @@ import math
 import numpy as np
 from gym import spaces
 from modelicagym.environment import DymolaBaseEnv
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -39,25 +40,29 @@ class IEEE9Env(DymolaBaseEnv):
         self.viewer = None
         self.display = None
 
-        self.action_names = ['G1.k','G2.k','G3.k']
+        self.action_names = ['m','n']
+        self.rbc_action_names = [f'x[{i}]' for i in range(1,62)]
+        #self.rbc_action_names += [f't[{i}]' for i in range(1,42)]
         self.state_names = [
-                            'integrator[1]',
-                            'integrator[2]',
-                            'integrator[3]',
-                            'integrator[4]',
-                            'integrator[5]',
-                            'integrator[6]',
-                            'integrator[7]',
-                            'integrator[8]',
-                            'integrator[9]',
-                            'G1.gENSAL.P','G2.gENROU.P','G3.gENROU.P',
-                            'load_B8.P', 'load_B6.P', 'load_B5.P',
-                            'my_time',
-                            'load_B5.rising']
+                            'iEEE_9.B1.V',
+                            'iEEE_9.B2.V',
+                            'iEEE_9.B3.V',
+                            'iEEE_9.B4.V',
+                            'iEEE_9.B5.V',
+                            'iEEE_9.B6.V',
+                            'iEEE_9.B7.V',
+                            'iEEE_9.B8.V',
+                            'iEEE_9.B9.V',
+                            'iEEE_9.G1.gENSAL.P','iEEE_9.G3.gENROU.P',
+                            'iEEE_9.load_B8.P', 'iEEE_9.load_B6.P', 'iEEE_9.load_B5.P'
+                            ]
+        # self.state_names += [f'iEEE_9.load_B5.my_points[{i}]' for i in range(1,11)]
+        # self.state_names += [f'iEEE_9.load_B5.my_times[{i}]' for i in range(1,11)]
         # for a time averaged version:
         # self.state_names = ['b1_average.y', 'b2_average.y', ...]
         config = {
             'model_input_names': self.action_names,
+            'model_rbc_names': self.rbc_action_names,
             'model_output_names': self.state_names,
             'model_parameters': {},
             'initial_state': (1),
@@ -66,7 +71,7 @@ class IEEE9Env(DymolaBaseEnv):
             'negative_reward': negative_reward,
             'default_action': default_action,
             'method': method,
-            'additional_debug_states': [f'B{i}.V' for i in range(1,10)]
+            'additional_debug_states': ['iEEE_9.my_time']
         }
 
         self.n_steps = 0
@@ -76,13 +81,20 @@ class IEEE9Env(DymolaBaseEnv):
         self.avg_reward = 0
         self.cached_values = None
         self.cached_state = None
+        self.debug_data = None
+        self.initial_value = None
+        self.loads = pd.read_csv('part2.csv', header=None)
+        try:
+            self.loads.drop([0,1,2], inplace=True)
+        except:
+            pass
+        self.loads[3] = self.loads[3].round()
+        self.debug_points = []
+        self.last_value = None
+        self.penalty = 0
         # change this to unpack the dictionary __init__(**config), so that some parameters can have default values
         super().__init__(mo_name, libs, config, log_level)
 
-
-
-    # def postprocess_state(self, state):
-    #     return state
     def postprocess_state(self, state):
         processed_states = []
         for s in state:
@@ -108,24 +120,54 @@ class IEEE9Env(DymolaBaseEnv):
         return spaces.Box(low, high)
 
     def _reward_policy(self):
-        if self.cached_state:
-            avg_voltages = np.subtract(self.state[:9], self.cached_state[:9])
-        else:
-            avg_voltages = np.array(self.state[:9])
-        avg_voltages = avg_voltages / self.tau
-        reward = -1*np.linalg.norm(100*avg_voltages)
-        # normalized_reward = (reward - self.avg_reward) / (self.max_reward - self.min_reward)
+        avg_voltages = [(np.average(self.data[f'iEEE_9.B{i}.V']) -1) for i in range(1,10)]
+        #print(avg_voltages)
+        reward = -1*np.linalg.norm(avg_voltages)
+        reward = 100*(reward + 0.1)/2-0.5
         self.cached_state = self.state
-        return reward
-
-    # def get_state(self, results):
-    #     res = super().get_state(results)
-    #     res += []
+        print(reward)
+        return reward + self.penalty
 
     def step(self, action):
+
+        volt_violations = False
+        if self.data:
+            #volt_violations = False
+            for i in range(1,10):
+                if not volt_violations:
+                    x = np.average(self.data[f'iEEE_9.B{i}.V'])
+                    if x < 0.9 or x > 1.1:
+                        volt_violations = True
+
+        self.action = np.multiply(0.1,action)
+
+        my_loads = []
+        #dt = env.tau / 10
+        times = self.start + np.arange(60)
+        #print(times)
+        for i in times[:-1]:
+            try:
+                my_loads += [self.loads.loc[self.loads[3] == i%(48*60*60)].sample().values[0,-1]]
+            except:
+                pass
+        if not self.initial_value:
+            self.initial_value = my_loads[0]
+            self.debug_points = [1]
+            print("!!!!",self.initial_value)
+        if not self.last_value:
+            self.last_value = self.initial_value
+
+            #print(self.last_value)
+        my_loads = [self.last_value] + my_loads
+        self.last_value = my_loads[-1]
+        my_loads = np.divide(my_loads, self.initial_value)
+        #print(my_loads)
+        self.debug_points += np.ones(60).tolist()#my_loads.tolist()
+        self.rbc_action = self.debug_points[-61:]#(self.start + np.linspace(0, 1, 11)[:-1]*self.tau).tolist()
+        #self.rbc_action += times#np.random.uniform(0.5,1.5, 10).tolist()
+
         self.n_steps += 1
-        action = np.multiply(action, 0.2)
-        return super().step(list(action))
+        return super().step(self.action)
 
     def render(self, mode='human', close=False):
         return
