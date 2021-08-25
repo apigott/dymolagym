@@ -15,18 +15,8 @@ def eval_model(env, model_name):
 
     mode = 'load'
 
-    if mode == 'load':
-        model = SAC.load(model_name, env=env)
-    else:
-        model = SAC(MlpPolicy, env, learning_rate=10**-4, verbose=1, tensorboard_log='tensorboard_log')
-        tic = time.time()
+    model = SAC.load(model_name, env=env)
 
-        env.reset()
-        model.learn(10000, reset_num_timesteps=False)
-        model.save("IEEE9_5k_v4")
-
-        toc = time.time()
-        print(toc-tic)
 
     obs = env.reset()
     actions = []
@@ -49,7 +39,7 @@ def eval_model(env, model_name):
             ax[i][j].set_title(f'Bus {bus}')
 
     legend += ['RL Agent']
-    gen = ['G2.gENROU.P','G1.gENSAL.P']
+    gen = ['G2.gENROU.P','G3.gENROU.P']
     for j in range(2):
         ax[3][j].plot(env.debug_data['iEEE_9.my_time'], env.debug_data[f'iEEE_9.{gen[j]}'], color='r')
         ax[3][j].set_xlabel('Time (sec)')
@@ -114,15 +104,20 @@ def eval_model(env, model_name):
     return
 
 def train_model(env, model_name):
-    model = SAC(MlpPolicy, env, learning_rate=10**-5, ent_coef='auto_0.1', verbose=1, tensorboard_log='tensorboard_log', batch_size=64)
-
+    model = SAC(MlpPolicy, env, learning_rate=10**-3, ent_coef=0.0001, verbose=1, tensorboard_log='tensorboard_log', batch_size=64)
+    # model = SAC.load('v3_wInertia', env=env)
     env.reset()
-    model.learn(10000, reset_num_timesteps=True)
-    model.save(model_name)
+    for _ in range(10):
+        print("this", os.getcwd())
+        model.learn(1000, reset_num_timesteps=False)
+        model.save(model_name)
+    print("*******************")
+    print(env.total_run_time, env.total_simulation_time)
     return
 
 if __name__=='__main__':
-    model_name = "gen3_slack"
+    # model_name = "v5"
+    model_name = 'v25'
 
     # these config values are passed to the model specific environment class
     # mo_name and libs are passed on to the DymolaBaseEnv class
@@ -149,7 +144,11 @@ if __name__=='__main__':
 
     # create the environment. this will run an initial step and must return [True, [...]] or something is broken
     # TODO: create error handling/warnings if simulations don't work (i.e. returns [False], [...])
+    print('making the env')
     env = gym.make(env_name)
 
+    print('calling train')
     train_model(env, model_name)
+
+    print('calling evaluate')
     eval_model(env, model_name)

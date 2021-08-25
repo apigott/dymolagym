@@ -10,6 +10,7 @@ import numpy as np
 from gym import spaces
 from modelicagym.environment import DymolaBaseEnv
 import pandas as pd
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -35,16 +36,20 @@ class IEEE9Env(DymolaBaseEnv):
     def __init__(self, mo_name, libs, default_action, time_step, positive_reward,
                  negative_reward, log_level, method):
 
-        logger.setLevel(log_level)
+        self.total_simulation_time = 0
+        self.total_run_time = 0
 
+        logger.setLevel(log_level)
+        np.random.seed(10)
         self.viewer = None
         self.display = None
 
         self.action_names = ['m','n']
-        self.rbc_action_names = [f'x[{i}]' for i in range(1,62)]
-        #self.rbc_action_names += [f't[{i}]' for i in range(1,42)]
-        self.state_names = [
-                            'iEEE_9.B1.V',
+        self.rbc_action_names = [f'x[{i}]' for i in range(1,62)]+[f'y[{i}]' for i in range(1,62)] + [f'z[{i}]' for i in range(1,62)]
+        self.n_points = len(self.rbc_action_names)
+        self.debug_points = []
+
+        self.state_names = ['iEEE_9.B1.V',
                             'iEEE_9.B2.V',
                             'iEEE_9.B3.V',
                             'iEEE_9.B4.V',
@@ -53,13 +58,13 @@ class IEEE9Env(DymolaBaseEnv):
                             'iEEE_9.B7.V',
                             'iEEE_9.B8.V',
                             'iEEE_9.B9.V',
-                            'iEEE_9.G1.gENSAL.P','iEEE_9.G3.gENROU.P',
-                            'iEEE_9.load_B8.P', 'iEEE_9.load_B6.P', 'iEEE_9.load_B5.P'
-                            ]
-        # self.state_names += [f'iEEE_9.load_B5.my_points[{i}]' for i in range(1,11)]
-        # self.state_names += [f'iEEE_9.load_B5.my_times[{i}]' for i in range(1,11)]
-        # for a time averaged version:
-        # self.state_names = ['b1_average.y', 'b2_average.y', ...]
+                            'iEEE_9.G2.gENROU.P',
+                            'iEEE_9.G3.gENROU.P',
+                            'iEEE_9.load_B8.P',
+                            'iEEE_9.load_B6.P',
+                            'iEEE_9.load_B5.P',
+                            'iEEE_9.G1.P']
+
         config = {
             'model_input_names': self.action_names,
             'model_rbc_names': self.rbc_action_names,
@@ -71,11 +76,10 @@ class IEEE9Env(DymolaBaseEnv):
             'negative_reward': negative_reward,
             'default_action': default_action,
             'method': method,
-            'additional_debug_states': ['iEEE_9.my_time']
+            'additional_debug_states': ['iEEE_9.my_time','iEEE_9.load_B5.interp_value','x[1]','m','n']
         }
 
         self.n_steps = 0
-        # self._normalize_reward()
         self.max_reward = 0.5
         self.min_reward = -0.5
         self.avg_reward = 0
@@ -83,15 +87,17 @@ class IEEE9Env(DymolaBaseEnv):
         self.cached_state = None
         self.debug_data = None
         self.initial_value = None
-        self.loads = pd.read_csv('part2.csv', header=None)
-        try:
-            self.loads.drop([0,1,2], inplace=True)
-        except:
-            pass
-        self.loads[3] = self.loads[3].round()
-        self.debug_points = []
+        self.loads = pd.read_csv('all_loads.csv')
+
+        self.num_samples = len(self.loads)
+        self.loads['time'] = self.loads['time'].round()
+        self.loads['P1'] = self.loads['P1']/self.loads['P1'].iloc[0]
+        self.loads['P2'] = self.loads['P2']/self.loads['P2'].iloc[0]
+        self.loads['P3'] = self.loads['P3']/self.loads['P3'].iloc[0]
         self.last_value = None
         self.penalty = 0
+        self.random_walk = {'P1':[0],'P2':[0],'P3':[0]}
+        self.actions = []
         # change this to unpack the dictionary __init__(**config), so that some parameters can have default values
         super().__init__(mo_name, libs, config, log_level)
 
@@ -120,54 +126,59 @@ class IEEE9Env(DymolaBaseEnv):
         return spaces.Box(low, high)
 
     def _reward_policy(self):
-        avg_voltages = [(np.average(self.data[f'iEEE_9.B{i}.V']) -1) for i in range(1,10)]
-        #print(avg_voltages)
+        avg_voltages = [10*(np.average(self.data[f'iEEE_9.B{i}.V']) -1) for i in range(1,10)]
         reward = -1*np.linalg.norm(avg_voltages)
-        reward = 100*(reward + 0.1)/2-0.5
+        reward = reward + 0.5
         self.cached_state = self.state
-        print(reward)
-        return reward + self.penalty
+        #print(reward)
+        return reward #+ self.penalty
 
     def step(self, action):
+        self.step_start = time.time()
+        # self.action = np.multiply(action).tolist()
+        self.action = action
+        self.actions += [self.action]
 
         volt_violations = False
         if self.data:
-            #volt_violations = False
             for i in range(1,10):
                 if not volt_violations:
                     x = np.average(self.data[f'iEEE_9.B{i}.V'])
                     if x < 0.9 or x > 1.1:
                         volt_violations = True
 
-        self.action = np.multiply(0.1,action)
-
-        my_loads = []
-        #dt = env.tau / 10
         times = self.start + np.arange(60)
-        #print(times)
-        for i in times[:-1]:
-            try:
-                my_loads += [self.loads.loc[self.loads[3] == i%(48*60*60)].sample().values[0,-1]]
-            except:
-                pass
-        if not self.initial_value:
-            self.initial_value = my_loads[0]
-            self.debug_points = [1]
-            print("!!!!",self.initial_value)
-        if not self.last_value:
-            self.last_value = self.initial_value
+        sin_times = np.linspace(times[0]*6.28/86400,times[-1]*6.28/86400, 61)
+        base = 1+0.1*np.sin(sin_times)
+        for val in ['P1','P2','P3']:
+            #random_walk = np.clip(np.cumsum(np.random.uniform(-0.02,0.02,60)),a_min=-0.1, a_max=0.1)
+            self.random_walk[val] += (self.random_walk[val][-1] + np.cumsum(np.random.uniform(-0.001,0.001, 61))).tolist()
+            x = base + self.random_walk[val][-61:]
+            self.debug_points += x.tolist()
+            # if self.start==0:
+            #     self.debug_points += [1]
+            # for i in times:
+            #     # if val == 'P2':
+            #     #     offset = 60*60
+            #     # else:
+            #     #     offset = 0
+            #     try:
+            #         self.debug_points += [self.loads.loc[self.loads['time'] == i%(self.num_samples)].sample()[val].values[0]]
+            #     except:
+            #         self.debug_points += self.debug_points[-1]
 
-            #print(self.last_value)
-        my_loads = [self.last_value] + my_loads
-        self.last_value = my_loads[-1]
-        my_loads = np.divide(my_loads, self.initial_value)
-        #print(my_loads)
-        self.debug_points += np.ones(60).tolist()#my_loads.tolist()
-        self.rbc_action = self.debug_points[-61:]#(self.start + np.linspace(0, 1, 11)[:-1]*self.tau).tolist()
-        #self.rbc_action += times#np.random.uniform(0.5,1.5, 10).tolist()
 
+        self.rbc_action = self.debug_points[-1*self.n_points:]
         self.n_steps += 1
+
         return super().step(self.action)
+
+    def reset(self):
+        print('resetting debug points')
+        self.debug_points = []
+        self.random_walk = {'P1':[0], 'P2':[0], 'P3':[0]}
+        np.random.seed(0)
+        return super().reset()
 
     def render(self, mode='human', close=False):
         return
