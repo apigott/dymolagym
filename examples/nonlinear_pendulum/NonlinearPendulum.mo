@@ -12,9 +12,6 @@ model NonlinearPendulum "Nonlinear pendulum model"
 
   Modelica.Blocks.Interfaces.RealInput u1
     annotation (Placement(transformation(extent={{-28,-20},{12,20}})));
-initial equation
-  theta = theta0;
-  omega = omega0;
 
 equation
   when initial() then
