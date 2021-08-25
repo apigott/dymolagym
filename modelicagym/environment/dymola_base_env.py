@@ -110,6 +110,7 @@ class DymolaBaseEnv(gym.Env):
         self.data = None
         # self.csv_names = []#config.get('csv_names')
         # self.csv_values = []
+        self.tracker = 0
     # OpenAI Gym API
 
     def render(self, **kwargs):
@@ -140,13 +141,14 @@ class DymolaBaseEnv(gym.Env):
         self.start = 0
         self.stop = self.tau
 
-
+        print('resetting')
         res = self.dymola.simulateExtendedModel(self.model_name,
-                                                startTime=self.start, stopTime=self.start,
-                                                initialNames=self.model_input_names, #+ self.csv_names,
-                                                initialValues=self.action, #+ self.csv_values,
+                                                startTime=self.start, stopTime=self.stop,
+                                                initialNames=self.model_input_names,
+                                                initialValues=self.action,
                                                 finalNames=self.model_output_names)
 
+        print(f'reset, {res}')
         self.state = res[1]
         self.cached_values = None
         self.cached_state = None
@@ -217,23 +219,14 @@ class DymolaBaseEnv(gym.Env):
 
         # Set input values of the model
         logger.debug("model input: {}, values: {}".format(self.model_input_names, action))
-        # self.model.set(list(self.model_input_names), list(action)) # @akp to fix
 
-        #self.action = action
-
-        self.done, self.state = self.do_simulation()
+        self.done, state = self.do_simulation()
+        self.state = state
         self.start += self.tau
         self.stop += self.tau
-        #print(self.dymola.getLastError())
-        # if res:
-        #     self.done, self.state = res
-        #     self.start += self.tau
-        #     self.stop += self.tau
-        # else:
-        #     print(f"reset at sim time={self.start}")
-        #     self.done = False
-        #     self.reset_dymola()
-        #     self.state = self.reset()
+
+        self.step_end = time.time()
+        self.total_simulation_time += self.step_end - self.step_start
 
         return flatten(self.state), self._reward_policy(), self.done, {}
 
@@ -275,35 +268,33 @@ class DymolaBaseEnv(gym.Env):
 
         :return: resulting state of the environment.
         """
+        #print("============================")
         logger.debug("Simulation started for time interval {}-{}".format(self.start, self.stop))
-
-
-        self.dymola.importInitialResult('dsres.mat', atTime=self.start)
-
-        self.all_actions = []
-        self.all_actions += [x for x in self.action]
-        #self.all_actions += [x for x in self.rbc_action]
-
+        sim_start = time.time()
+        self.act = self.action + self.debug_points[-1*self.n_points:]
+        #try:
+        #print(f'importing results at {self.start}')
+        found = self.dymola.importInitialResult('dsres.mat', atTime=self.start)
+        # if found:
+            #print(f'simulating at {self.start}')
         x = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start,
-                                        stopTime=self.stop)#,
-                                        #initialNames=self.model_input_names,# + self.rbc_action_names,
-                                        #initialValues=self.all_actions,
-                                        #finalNames=self.model_output_names)
-
+                                    stopTime=self.stop,
+                                    initialNames=self.model_input_names + self.rbc_action_names,
+                                    initialValues = self.act,
+                                    finalNames=self.model_output_names)
+        #print(x)
         finished, state = x
 
         if finished == False:
-            #self.dymola.getLastError())
+            print('finished = False')
             print(self.dymola.getLastError())
-            print('here - 2')
-            self.reset_dymola()
             state = self.reset()
             finished = True
-        else:
-            state = self.postprocess_state(state)
 
         self.get_state_values()
         logger.debug("Simulation results: {}".format(state))
+        sim_end = time.time()
+        self.total_simulation_time += sim_end - sim_start
         return not finished, state # a list of the final values
 
     def _reward_policy(self):
@@ -325,19 +316,9 @@ class DymolaBaseEnv(gym.Env):
 
         :return: Values of model outputs as tuple in order specified in `model_outputs` attribute
         """
-        try:
-            if not os.path.isfile('temp_dir/dsres.mat'):
-                print('no file???')
-            self.data = DyMat.DyMatFile('temp_dir/dsres.mat')
-        except:
-            print('here - 3')
-            self.reset()
-            self.data = DyMat.DyMatFile('temp_dir/dsres.mat')
 
-        # print(self.debug_data.keys())
-        #print(data.names)
+        self.data = DyMat.DyMatFile('temp_dir/dsres.mat')
         for name in self.debug_data :
-            # state += [data[name][-1]]
             self.debug_data[name] += self.data[name].tolist()
 
         for name in self.add_names:
