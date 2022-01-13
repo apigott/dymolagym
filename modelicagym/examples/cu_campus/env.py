@@ -17,8 +17,10 @@ class CampusEnv(DymolaBaseEnv):
 
     def __init__(self, config_file):
         self.conf_file = config_file
-        #self.rbc_action_names = ['stadium.d_t','stadium.num_points'] + [f'stadium.d_P_profile[{i}]' for i in range(1,5)]
         self.load_profiles = pd.read_csv('loads.csv')
+        self.solar = pd.read_csv('coors_pv.csv')
+        self.solar['Date & Time'] = pd.to_datetime(self.solar['Date & Time'], format='%m/%d/%Y %H:%M')
+        self.solar = self.solar.iloc[(self.solar['Date & Time'].dt.hour).idxmin():]
         super().__init__()
 
     def postprocess_state(self, state):
@@ -40,20 +42,26 @@ class CampusEnv(DymolaBaseEnv):
         reward = -1*np.linalg.norm(avg_voltages)
         reward = 100*(reward + 0.1)
         self.cached_state = self.state
+        if self.exception_flag:
+            reward -= 5
+            self.exception_flag = False
         return reward
 
     def step(self, action):
-
-        self.rbc_action_names = []
-        for x in ["macky","umc","stadium","hellums","quad","ec","chw_plant","kitt"]:
-            foo = [f'{x}.d_P_profile[{i}]' for i in range(1,25)]
-            self.rbc_action_names += foo
         # # load_profile = load_profiles['3'].iloc[:24].to_list()
         # # load_profile = np.subtract(load_profile, load_profile[0])
         self.rbc_action = []
+        start_idx = int(self.start/3600) % len(self.load_profiles)
+        stop_idx = int(self.stop/3600) % len(self.load_profiles)
+
         for x in range(1,9):
             foo = self.load_profiles[f'{x}_est'].iloc[int(self.start/3600):int(self.stop/3600)].to_list()
             bar = self.load_profiles[f'{x}_est'].iloc[0]
             foo = np.subtract(foo, bar).tolist()
             self.rbc_action += foo
-        super().step(action)
+
+        # for i in range(1,1441):
+        #     # self.rbc_action_names += [f"irradiance_to_Power.irradiance_profile[i]"]
+        #     self.rbc_action += [self.solar['Irradiance [W/m^2]'].iloc[i]]
+        # print(self.rbc_action)
+        return super().step(action)
