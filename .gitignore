@@ -1,7 +1,0 @@
-.idea
-*.pytest_cache*
-*__pycache__*
-*.ipynb_checkpoints*
-temp_dir/
-*tensorboard_log*
-modelicagym/examples/ieee9/tensorboard_log/
