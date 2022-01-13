@@ -2,6 +2,7 @@ import datetime
 import logging
 import os
 import gym
+from gym import spaces
 from dymola.dymola_interface import DymolaInterface
 import numpy as np
 from enum import Enum
@@ -9,6 +10,7 @@ import time
 import concurrent.futures as futures
 import psutil
 import DyMat
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +25,6 @@ possibly need to change the injection to occur at startTime+0.1 seconds rather t
 
 def flatten(state):
     return state
-    # flat_state = []
-    # for s in state:
-    #     try:
-    #         flat_state += s
-    #     except:
-    #         flat_state += [s]
-    # print(flat_state)
-    # return flat_state
 
 def timeout(timelimit):
     def decorator(func):
@@ -55,9 +49,8 @@ class DymolaBaseEnv(gym.Env):
     To install dymola API add dymola.exe to the system PATH variable.
     """
 
-    def __init__(self, mo_name, libs, config, log_level):
+    def __init__(self):
         """
-
         :param model_path: path to the model FMU. Absolute path is advised.
         :param mode: FMU exporting mode "CS" or "ME"
         :param config: dictionary with model specifications:
@@ -68,30 +61,34 @@ class DymolaBaseEnv(gym.Env):
 
             positive_reward - (optional) positive reward for default reward policy. Is returned when episode goes on.
             negative_reward - (optional) negative reward for default reward policy. Is returned when episode is ended
-
         :param log_level: level of logging to be used
         """
-        logger.setLevel(log_level)
+        with open(self.conf_file) as f:
+            config = json.load(f)
+        logger.setLevel(config['log_level'])
 
-        self.model_name = mo_name
+        self.model_name = config['mo_name']
         self.dymola = None
-        self.libs = libs
+        self.libs = config['libs']
         self.reset_dymola()
 
-        # if you reward policy is different from just reward/penalty - implement custom step method
-        self.positive_reward = config.get('positive_reward')
-        self.negative_reward = config.get('negative_reward')
-
         # Parameters required by this implementation
-        self.tau = config.get('time_step')
-        self.model_input_names = config.get('model_input_names')
-        self.model_output_names = config.get('model_output_names')
-        self.model_parameters = config.get('model_parameters')
+        self.tau = config['time_step']
+        self.model_input_names = []
+        for i in range(len(config['action_names'])):
+            if config['action_len'][i] <= 1:
+                self.model_input_names += [config['action_names'][i]]
+            else:
+                self.model_input_names += [f"{config['action_names'][i]}[{x}]" for x in range(1,1+config['action_len'][i])]
+        self.model_output_names = config['state_names']
+        self.model_parameters = config['model_parameters']
         self.default_action = config['default_action']
         self.add_names = config['additional_debug_states']
         self.method = config['method']
-        self.fixedstepsize = None
-
+        self.negative_reward = config['negative_reward']
+        self.positive_reward = config['positive_reward']
+        if not len(self.model_input_names) == len(self.default_action):
+            raise Exception("The number of action names and the default action values should be the same length.")
         # initialize the model time and state
         self.start = 0
         self.stop = self.tau
@@ -103,16 +100,20 @@ class DymolaBaseEnv(gym.Env):
         self.observation_space = self._get_observation_space()
 
         self.debug_data = {name:[] for name in self.model_output_names}
-
-
-        self.rbc_action_names = config.get('model_rbc_names')
+        self.rbc_action_names = []
+        for i in range(len(config['rbc_action_names'])):
+            if config['rbc_action_len'][i] <= 1:
+                self.rbc_action_names += [config['rbc_action_names'][i]]
+            else:
+                foo = config['rbc_action_names'][i]
+                bar = config['rbc_action_len'][i]
+                self.rbc_action_names += [f"{foo}[{x}]" for x in range(1,1+bar)]
         self.rbc_action = []
         self.data = None
-        # self.csv_names = []#config.get('csv_names')
-        # self.csv_values = []
         self.tracker = 0
-    # OpenAI Gym API
+        self.exception_flag = False
 
+    # OpenAI Gym API
     def render(self, **kwargs):
         """
         OpenAI Gym API. Determines how current environment state should be rendered.
@@ -126,9 +127,7 @@ class DymolaBaseEnv(gym.Env):
         OpenAI Gym API. Determines restart procedure of the environment
         :return: environment state after restart
         """
-        print('the model will be reset')
-
-        logger.info("Resetting the environment by deleting old results files.")
+        logger.info("Resetting the environment and deleting old results files.")
         if os.path.isdir('temp_dir'):
             # print("Removing old files...")
             for file in os.listdir('temp_dir'):
@@ -141,31 +140,27 @@ class DymolaBaseEnv(gym.Env):
         self.start = 0
         self.stop = self.tau
 
-        print('resetting')
+        logger.info("The model is being reset")
         res = self.dymola.simulateExtendedModel(self.model_name,
                                                 startTime=self.start, stopTime=self.stop,
                                                 initialNames=self.model_input_names,
                                                 initialValues=self.action,
                                                 finalNames=self.model_output_names)
 
-        print(f'reset, {res}')
         self.state = res[1]
         self.cached_values = None
         self.cached_state = None
         self.debug_data = {name:[] for name in self.model_output_names+self.add_names}
         self.state = self.postprocess_state(self.state)
-        self.done = False
-        print('the model has been reset')
+        self.done = not(res[0])
+
+        if self.done:
+            logger.error(f"Model failed to reset. Dymola simulation from time {self.start} to {self.stop} failed with error message: {self.dymola.getLastError()}")
         return flatten(self.state)
 
     def reset_dymola(self):
-        print('resetting dymola...')
         if self.dymola: # this doesn't really seem to be working. It hangs
             self.dymola.close()
-        # PROCNAME = "Dymola.exe"
-        # for proc in psutil.process_iter():
-        #     if proc.name() == PROCNAME:
-        #         proc.kill()
 
         self.dymola = DymolaInterface()
         self.dymola.ExecuteCommand("Advanced.Define.DAEsolver = true")
@@ -174,17 +169,17 @@ class DymolaBaseEnv(gym.Env):
         loaded = []
         for lib in self.libs: # all paths relative to the cwd
             loaded += [self.dymola.openModel(lib, changeDirectory=False)]
+            if not loaded[-1]:
+                logger.error(f"Could not find library {lib}")
 
         if not False in loaded:
             logger.debug("Successfully loaded all libraries.")
-        else:
-            logger.error("Dymola could not find all models.")
 
         if not os.path.isdir('temp_dir'):
             os.mkdir('temp_dir')
         self.temp_dir = os.path.join(os.getcwd(), "temp_dir")
         self.dymola.cd('temp_dir')
-        print('dymola has been reset')
+        logger.debug("Dymola has been reset")
         return
 
     def step(self, action):
@@ -196,7 +191,7 @@ class DymolaBaseEnv(gym.Env):
         """
         logger.debug("Experiment next step was called.")
         if self.done:
-            logging.warning(
+            logger.warning(
                 """You are calling 'step()' even though this environment has already returned done = True.
                 You should always call 'reset' once you receive 'done = True' -- any further steps are
                 undefined behavior.""")
@@ -207,26 +202,27 @@ class DymolaBaseEnv(gym.Env):
             iter(action)
         except TypeError:
             action = [action]
-            logging.warning("Model input values (action) should be passed as a list")
+            logger.warning("Model input values (action) should be passed as a list")
 
         # Check if number of model inputs equals number of values passed
         if len(action) != len(list(self.model_input_names)):
             message = "List of values for model inputs should be of the length {}," \
                       "equal to the number of model inputs. Actual length {}".format(
                 len(list(self.model_input_names)), len(action))
-            logging.error(message)
+            logger.error(message)
             raise ValueError(message)
 
         # Set input values of the model
         logger.debug("model input: {}, values: {}".format(self.model_input_names, action))
-
-        self.done, state = self.do_simulation()
-        self.state = state
-        self.start += self.tau
-        self.stop += self.tau
-
-        self.step_end = time.time()
-        self.total_simulation_time += self.step_end - self.step_start
+        try:
+            self.done, state = self.do_simulation()
+            self.state = state
+            self.start += self.tau
+            self.stop += self.tau
+        except:
+            print("exception")
+            self.reset()
+            self.exception_flag = True
 
         return flatten(self.state), self._reward_policy(), self.done, {}
 
@@ -243,7 +239,9 @@ class DymolaBaseEnv(gym.Env):
 
         :return: one of gym.spaces classes that describes action space according to environment specifications.
         """
-        pass
+        low = -1*np.ones(len(self.model_input_names))
+        high = 1*np.ones(len(self.model_input_names))
+        return spaces.Box(low, high)
 
     def _get_observation_space(self):
         """
@@ -251,7 +249,9 @@ class DymolaBaseEnv(gym.Env):
 
         :return: one of gym.spaces classes that describes state space according to environment specifications.
         """
-        pass
+        low = -1*np.ones(len(self.model_output_names))
+        high = 1*np.ones(len(self.model_output_names))
+        return spaces.Box(low, high)
 
     def _is_done(self, results):
         """
@@ -270,19 +270,15 @@ class DymolaBaseEnv(gym.Env):
         """
         #print("============================")
         logger.debug("Simulation started for time interval {}-{}".format(self.start, self.stop))
-        sim_start = time.time()
-        self.act = self.action + self.debug_points[-1*self.n_points:]
-        #try:
-        #print(f'importing results at {self.start}')
+        self.act = self.action + self.rbc_action #self.debug_points[-1*self.n_points:]
+
         found = self.dymola.importInitialResult('dsres.mat', atTime=self.start)
-        # if found:
-            #print(f'simulating at {self.start}')
         x = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start,
                                     stopTime=self.stop,
                                     initialNames=self.model_input_names + self.rbc_action_names,
                                     initialValues = self.act,
                                     finalNames=self.model_output_names)
-        #print(x)
+
         finished, state = x
 
         if finished == False:
@@ -293,9 +289,7 @@ class DymolaBaseEnv(gym.Env):
 
         self.get_state_values()
         logger.debug("Simulation results: {}".format(state))
-        sim_end = time.time()
-        self.total_simulation_time += sim_end - sim_start
-        return not finished, state # a list of the final values
+        return not finished, state
 
     def _reward_policy(self):
         """
@@ -304,10 +298,12 @@ class DymolaBaseEnv(gym.Env):
 
         :return: reward associated with the current state
         """
+        if self.exception_flag:
+            self.exception_flag = False
         if self.done:
-            reward = -100
+            reward = self.negative_reward
         else:
-            reward = 1
+            reward = self.positive_reward
         return reward
 
     def get_state_values(self):
@@ -321,7 +317,7 @@ class DymolaBaseEnv(gym.Env):
         for name in self.debug_data :
             self.debug_data[name] += self.data[name].tolist()
 
-        for name in self.add_names:
+        for name in self.add_names + self.model_input_names + self.rbc_action_names:
             if not name in self.debug_data:
                 self.debug_data.update({name:[]})
                 self.debug_data[name] += self.data[name].tolist()
