@@ -10,3 +10,4 @@ from .ieee14.ieee14_env import *
 from .ieee14.ieee14_eval import *
 
 from .cu_campus import *
+from .cu_campus_pypower import *
