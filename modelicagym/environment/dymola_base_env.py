@@ -167,6 +167,7 @@ class DymolaBaseEnv(gym.Env):
 
         # load libraries
         loaded = []
+        #self.dymola.eraseClasses('Modelica')
         for lib in self.libs: # all paths relative to the cwd
             loaded += [self.dymola.openModel(lib, changeDirectory=False)]
             if not loaded[-1]:
@@ -273,6 +274,7 @@ class DymolaBaseEnv(gym.Env):
         self.act = self.action + self.rbc_action #self.debug_points[-1*self.n_points:]
 
         found = self.dymola.importInitialResult('dsres.mat', atTime=self.start)
+        print(found)
         x = self.dymola.simulateExtendedModel(self.model_name, startTime=self.start,
                                     stopTime=self.stop,
                                     initialNames=self.model_input_names + self.rbc_action_names,

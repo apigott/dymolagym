@@ -1,6 +1,6 @@
 {
     "model_name":"campus_test",
-    "mo_name": "Buildings.Experimental.DHC.Examples.Combined.ParallelConstantFlow_withCooling",
+    "mo_name": "Buildings.Experimental.DHC.Examples.Combined.ParallelConstantFlow",
     "libs": ["../../../../cu-case-study-4.0.0/modelica-buildings/Buildings/package.mo"],
     "time_step": 720,
     "log_level": 0,
