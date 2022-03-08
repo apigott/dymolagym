@@ -6,14 +6,14 @@
     "log_level": 0,
     "state_names":["pumDis.P"],
     "model_parameters":[],
-    "action_names":["heaWatSupMinSet"],
-    "action_len":[1],
+    "action_names":[],
+    "action_len":[],
     "rbc_action_names":[],
     "rbc_action_len":[],
     "additional_debug_states": [],
     "negative_reward":-1,
     "positive_reward":1,
     "log_level":0,
-    "default_action": [306],
+    "default_action": [],
     "method":"Dassl"
 }
