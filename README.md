@@ -15,12 +15,15 @@ The majority of the package dependencies for DymolaGym can be installed via pip 
 :<work_dir>$ conda activate <myenv>
 ```
 You can also add the required packages at any time using `conda install --file requirements.txt`
+
 2. Install Dymola and add the `dymola.exe` to `$PATH`. On Windows the typical installation directory is `C:/Program Files/Dymola_2021x/`. On Linux the typical installation directory is `usr/bin/lib/Dymola_2021x/`. (Check your installation to be sure.)
+
 3. Check that `dymola` is available as a system command. In terminal you can check that the command 
 ```bash
 :<work_dir>$ dymola
 ```
 starts a Dymola interface.
+
 4. If you are running your Python installation of DymolaGym without a package manager (not recommended!) this should enable import of the `dymola` package in Python. You may check this by running the following command in terminal:
 ```bash
 :<work_dir>$ python
