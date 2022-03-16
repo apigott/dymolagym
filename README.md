@@ -1,47 +1,34 @@
-<img src="preview-image-alt.png" alt="modelicagym_logo"/>
+# DymolaGym: Applying Reinforcement Learning to Modelica Models in Dymola
 
-# ModelicaGym: Applying Reinforcement Learning to Modelica Models
+The *DymolaGym* toolbox is developed to use Reinforcement Learning (RL) algorithms with models developed in the Modelica language and compiled and simulated in the Dymola application. Each Modelica model (.mo file) can be easily adapted to an OpenAI Gym wrapper by editing the environment configuration file, and assigning a reward function in Python. Minimal changes may be required in the Modelica model to enable simulation via the Dymola API.
 
-This *ModelicaGym* toolbox was developed to employ Reinforcement Learning (RL) for solving optimization and control tasks in Modelica models. The developed tool allows connecting models using Functional Mock-up Interface (FMI) to OpenAI Gym toolkit in order to exploit Modelica equation-based modelling and co-simulation together with RL algorithms as a functionality of the tools correspondingly. Thus, *ModelicaGym* facilitates fast and convenient development of RL algorithms and their comparison when solving optimal control problem for Modelica dynamic models. 
+Please note that this toolbox is developed on top of and in addition to the ModelicaGym library which this repository is forked from. We thank the authors of the ModelicaGym library for their efforts to create the original ModelicaGym with excellent documentation. Note that the current setup of the DymolaGym environment definition is not completely interchangeable with ModeilcaGym so for now we recommend installing the two repositories seperately if you would like to compare.
 
-Inheritance structure of the *ModelicaGym* toolbox classes and the implemented methods are discussed in details in examples. The toolbox functionality validation is performed on the Cart-Pole balancing problem. This includes physical system model description and it's integration in the toolbox, experiments on selection and influence of the model parameters (i.e. force magnitude, Cart-pole mass ratio, reward ratio, and simulation time step) on the learning process of Q-learning algorithm supported with discussion of the simulation results. 
+## Installation
+The majority of the package dependencies for DymolaGym can be installed via pip and/or conda. However, as Dymola is a proprietary software, the `dymola` package is not available via a package manager. It may be installed from source if you have a licensed Dymola installation. Installation is convered briefly in the documentation but for clarity will be repeated below with additional installation tips.
 
-### Paper
-ArXiv preprint version can be found [here](https://arxiv.org/abs/1909.08604).
-
-Repository contains:
-* `modelicagym.environments` package for integration of FMU as an environment to OpenAI Gym.
-FMU is a functional model unit exported from one of the main Modelica tools, e.g. Dymola(proprietary) or JModelica(open source).
-Currently only FMU's exported in co-simulation mode are supported.
-* `gymalgs.rl` package for Reinforcement Learning algorithms compatible to OpenAI Gym environments.
-
-## Instalation
-Full instalation guide is available [here](https://github.com/ucuapps/modelicagym/blob/master/docs/install.md).
-
-You can test working environment by running 
-[./test_setup.py](https://github.com/ucuapps/modelicagym/blob/master/test/setup_test.py) script.
-
-You can install package itself by running `pip install git+https://github.com/ucuapps/modelicagym.git` (or `pip3 install git+https://github.com/ucuapps/modelicagym.git` if you have both python versions installed).
-
-## Examples
-Examples of usage of both packages can be found in examples folder.
-* [Tutorial](https://github.com/OlehLuk/modelicagym/blob/master/docs/fmu_integration_tutorial.md) explains how to integrate FMU using this toolbox in a step-wise manner. CartPole problem is considered as an illustrative example for the tutorial. Code from [cart_pole_env.py](https://github.com/OlehLuk/modelicagym/blob/master/examples/cart_pole_env.py) is referenced and described in details.
-
-* [cart_pole_env.py](https://github.com/ucuapps/modelicagym/blob/master/examples/cart_pole_env.py)
-is an example how a specific FMU can be integrated to an OpenAI Gym as an environment. Classic cart-pole environment is considered.
-Corresponding FMU's can be found in the resources folder.
-
-* [cart_pole_q_learner.py](https://github.com/ucuapps/modelicagym/blob/master/examples/cart_pole_q_learner.py) 
-is an example of Q-learning algorithm application. Agent is trained on the Cart-pole environment simulated with an FMU. Its' integration is described in previous example.
-
-* Running examples is expected without modelicagym package installation.
-To run cart_pole_q_learner.py one just has to clone the repo.
-The advised way to run examples is with PyCharm IDE. It automatically adds project root to the PYTHONPATH.
-
-If one wants to run example from the command line, they should update PYTHONPATH with project root:
+1. It is recommended to install all packages inside a Conda environment to keep dependencies from causing issues. The following workflow is recommended:
 ```bash
-:<work_dir>$ git clone https://github.com/ucuapps/modelicagym.git
-:<work_dir>$ export PYTHONPATH=$PYTHONPATH:<work_dir>/modelicagym
-:<work_dir>$ cd modelicagym/examples
-:<work_dir>/modelicagym/examples $ python3 cart_pole_q_learner.py
+:<work_dir>$ git clone https://github.com/apigott/modelicagym/
+:<work_dir>$ cd modelicagym
+:<work_dir>$ conda create --name <myenv> python=3.8 --file requirements.txt
+:<work_dir>$ conda activate <myenv>
 ```
+You can also add the required packages at any time using `conda install --file requirements.txt`
+2. Install Dymola and add the `dymola.exe` to `$PATH`. On Windows the typical installation directory is `C:/Program Files/Dymola_2021x/`. On Linux the typical installation directory is `usr/bin/lib/Dymola_2021x/`. (Check your installation to be sure.)
+3. Check that `dymola` is available as a system command. In terminal you can check that the command 
+```bash
+:<work_dir>$ dymola
+```
+starts a Dymola interface.
+4. If you are running your Python installation of DymolaGym without a package manager (not recommended!) this should enable import of the `dymola` package in Python. You may check this by running the following command in terminal:
+```bash
+:<work_dir>$ python
+>>> import dymola
+```
+5. If you are running your Python installation of Dymola in a Conda environment (recommended!) you will need to add the `dymola` package by creating a `<dymola>.pth` file. Create a `.pth` file (any name is fine) in `path/to/myenv/Lib/site-packages` with the following as text: `path/to/Dymola_2021x/Modelica/Library/python_interface/dymola.egg`. The same method as in 3 should confirm the Dymola-Python API is working.
+
+Hint: You can find the path for your Conda environment with `conda env list`, use this path in conjunction with `/Lib/site-packages` to find the site-packages. You can use `which dymola` to find the Dymola installation directory (i.e. `path/to/dymola`). In Windows the path is likely `C:\Program Files`. In Linux the Dymola .exe is installed in `\bin` by default, but extra files (i.e. the python_interface directory) will be installed in `\opt`.
+
+## Getting Started
+Each `modelicagym\example` directory contains a different Modelica model and environment. `cu_campus` is most up to date with the current `config.json` format. You can create your own environment by copying the `empty` directory and following the prompts in the configuration file.
