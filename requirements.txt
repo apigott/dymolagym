@@ -4,7 +4,6 @@ cloudpickle==1.6.0
 decorator==4.4.2
 Deprecated==1.2.13
 dm-tree==0.1.6
-DyMat==0.7
 filelock==3.4.2
 future==0.18.2
 grpcio==1.43.0
@@ -16,7 +15,7 @@ jsonschema==4.3.3
 jupyter-core==4.6.3
 llvmlite==0.38.0
 lz4==3.1.10
-msgpack==1.0.3
+msgpack-python==1.0.3
 munkres==1.1.4
 networkx==2.6.3
 numpy==1.21.5
@@ -36,8 +35,6 @@ PyWavelets==1.2.0
 pywin32==227
 PyYAML==6.0
 pyzmq==19.0.2
-ray==1.9.1
-redis==4.1.0
 requests==2.27.0
 scikit-image==0.19.1
 six==1.15.0
