@@ -34,4 +34,32 @@ starts a Dymola interface.
 Hint: You can find the path for your Conda environment with `conda env list`, use this path in conjunction with `/Lib/site-packages` to find the site-packages. You can use `which dymola` to find the Dymola installation directory (i.e. `path/to/dymola`). In Windows the path is likely `C:\Program Files`. In Linux the Dymola .exe is installed in `\bin` by default, but extra files (i.e. the python_interface directory) will be installed in `\opt`.
 
 ## Getting Started
-Each `modelicagym\example` directory contains a different Modelica model and environment. `cu_campus` is most up to date with the current `config.json` format. You can create your own environment by copying the `empty` directory and following the prompts in the configuration file.
+Each `modelicagym\example` directory contains a different Modelica model and environment. `cartpole` is most up to date with the current `config.json` format. You can create your own environment by copying the `empty` or `cartpole` directory and following the prompts below in "Your First Env".
+
+## Your First Env
+
+### Changes to the Modelica .mo file
+A couple small changes will need to be made to enable stepped simulation in the Dymola API using the `simulateExtendedModel()` method
+
+1. All action values (values that you intend to change) should be modified to parameter values. Helpful hint: if you have a working model (`YourModel.mo`) that takes input blocks (`Modelica.Blocks.Interfaces.RealInput`) consider making an outer model (`YourModel_RL.mo`) with a constant block (`Modelica.Blocks.Sources.Constant`) with value `u` fed into the input of `yourModel`, where `u` is a parameter (declared as `parameter Real u`).
+
+2. `initial equation` blocks must be changed to `equations`. You may access this by using the `when initial()` clause in the `equations` block. (This is a bug in the Dymola-Python API).
+
+### Adding your model to the `modelicagym` package
+When adding a new module to the `modelicagym` package it is helpful to understand how modules are imported in Python scripts. A recap is added below for beginner Python users:
+
+* Calling `import <package>` imports all scripts included in `<package>/__init__.py` and runs all the Python code included in `<package>/__init__.py` and `<package>/setup.py`.
+* If new modules are called in `<package>/__init__.py` (i.e. `from <package>.<subpackage> import *`) then everything listed in `<package>/<subpackage>/__init__.py` is imported and `<package>/<subpackage>/setup.py` is run. 
+* The naming convention must be consistent, as everything else in Python.
+
+To include your new package, modify the following files in the following ways:
+  1. `modelicagym/examples/yourEnv/env.py` with your new environment class. For example you may add post or pre-processing of the states in the `.step()` method. Remember to call the parent class method (i.e. `return super().step(action)`) 
+  
+  2. `modelicagym/examples/yourEnv/__init__.py` with your prefered registered name in Gym. It should be in the format "<YourEnv>-v<versionNumer>"
+  
+  3. `modelicagym/examples/yourEnv/__init__.py` with the entry point (location) of the new class you have created. It should be in the format "modelicagym.examples:<YourEnv>"
+  
+  4. `modelicagym/examples/__init__.py` with an import of your environment (`from .yourEnv import *`)
+  
+### Running your new model
+You can test whether or not all the necessary methods are working by using the `test.ipynb` or similar. The `test.ipynb` files also includes a very small example of training an agent using stable-baselines3 although in general you will need to train your agent for many more timesteps before seeing good results.
