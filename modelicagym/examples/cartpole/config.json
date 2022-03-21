@@ -1,0 +1,18 @@
+
+{
+    "model_name":"my_rl_agent",
+    "mo_name": "ModelicaGym.CartPole_RL",
+    "libs": ["modelica/ModelicaGym.mo"],
+    "time_step": 60,
+    "state_names":["cartPole.x", "cartPole.x_dot", "cartPole.theta", "cartPole.theta_dot"],
+    "model_parameters":[],
+    "action_names":["u"],
+    "action_len":[1],
+    "rbc_action_names":[],
+    "additional_debug_states": ["force_input.y", "my_time"],
+    "log_level":0,
+    "default_action": [0],
+    "negative_reward": -10,
+    "positive_reward": 1,
+    "method":"Dassl"
+}
